@@ -1,4 +1,3 @@
-use animate::Animate as _;
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 

@@ -1,4 +1,3 @@
-use animate::Animate as _;
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Gauge, Paragraph};
 
@@ -54,7 +53,7 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     let phase_label_owned;
     let phase_label = if let Some(anim) = &app.session_animator {
-        phase_label_owned = anim.phase_label.get().clone();
+        phase_label_owned = anim.phase_label.get().to_string();
         phase_label_owned.as_str()
     } else {
         current_phase.name
@@ -154,7 +153,7 @@ fn render_breathing_circle(f: &mut Frame, area: Rect, app: &App) {
     let engine = &session_state.manager.engine;
     let phase = engine.current_phase();
 
-    let progress = animate::cubic_in_out(engine.phase_progress());
+    let progress = crate::animator::cubic_in_out(engine.phase_progress());
 
     let h = area.height as f64;
     let w = area.width as f64;

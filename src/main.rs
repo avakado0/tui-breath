@@ -72,10 +72,9 @@ async fn run_app() -> Result<()> {
 
         let engine_paused = matches!(&app.state, app::AppState::Session(s) if s.manager.engine.is_paused);
         if !engine_paused {
-            animate::tick(33);
-        }
-        if let Some(anim) = app.session_animator.as_mut() {
-            anim.animate();
+            if let Some(anim) = app.session_animator.as_mut() {
+                anim.tick(delta);
+            }
         }
 
         app.on_tick(delta);

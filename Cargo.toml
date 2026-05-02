@@ -2,6 +2,13 @@
 name = "tui_breath"
 version = "0.1.0"
 edition = "2021"
+description = "Terminal breathing guide built with Rust + Ratatui. Smooth eased animations, 4-7-8 / box / diaphragmatic patterns, JSON session tracking."
+license = "MIT"
+homepage = "https://batu0.com"
+repository = "https://github.com/avakado0/tui-breath"
+keywords = ["breathing", "tui", "terminal", "wellness", "ratatui"]
+categories = ["command-line-utilities"]
+readme = "README.md"
 
 [[bin]]
 name = "tui_breath"

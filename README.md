@@ -2,9 +2,24 @@
 
 A terminal-based breathing guide built in Rust. Guides you through breathing exercises with an animated glowing orb, smooth color transitions, and automatic session tracking.
 
+## Installation
+
 ```bash
 cargo install tui_breath
 ```
+
+<details>
+<summary>Build from source</summary>
+
+```bash
+git clone https://github.com/avakado0/tui-breath
+cd tui-breath
+cargo build --release
+./target/release/tui_breath
+```
+</details>
+
+**Uninstall:** `cargo uninstall tui_breath`
 
 ![demo](demo.gif)
 
@@ -41,19 +56,6 @@ cargo install tui_breath
 ## Quick Start
 
 Minimum terminal size: **60×24**.
-
-**Uninstall:** `cargo uninstall tui_breath`
-
-<details>
-<summary>Build from source</summary>
-
-```bash
-git clone https://github.com/avakado0/tui-breath
-cd tui-breath
-cargo build --release
-./target/release/tui_breath
-```
-</details>
 
 ## Controls
 

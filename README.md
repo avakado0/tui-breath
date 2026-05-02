@@ -35,14 +35,19 @@ A terminal-based breathing guide built in Rust. Guides you through breathing exe
 ## Quick Start
 
 ```bash
-# Install directly (requires Rust)
-cargo install --git https://github.com/avakado0/tui-breath
+# Install (requires Rust)
+cargo install tui_breath
 
 # Or build from source
 git clone https://github.com/avakado0/tui-breath
 cd tui-breath
 cargo build --release
 ./target/release/tui_breath
+```
+
+**Uninstall:**
+```bash
+cargo uninstall tui_breath
 ```
 
 Minimum terminal size: **60×24**.

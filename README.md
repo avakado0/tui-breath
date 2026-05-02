@@ -119,6 +119,8 @@ The engine owns timing. `animator.rs` owns visual interpolation.
 | `serde_json` | Session persistence |
 | `uuid`, `chrono`, `dirs`, `anyhow` | Utilities |
 
+Animation approach inspired by [animate](https://github.com/vyfor/animate) by vyfor.
+
 ## Testing
 
 ```bash

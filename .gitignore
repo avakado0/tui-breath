@@ -24,3 +24,7 @@ Thumbs.db
 *.so
 *.dylib
 demo.tape
+
+# Tool internals
+.pi/
+workspace/

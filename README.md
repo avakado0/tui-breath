@@ -14,7 +14,7 @@ A terminal-based breathing guide built in Rust. Guides you through breathing exe
 - Smooth 800ms color crossfade between phases (Cyan → Yellow → Green)
 - Typewriter phase label reveal on each transition
 - Hold phase: full orb with brightness pulse at ~900ms rhythm
-- All animations driven by the [animate](https://github.com/vyfor/animate) library
+- All animations implemented in-house (Lerp, Typewriter, Pulse structs)
 
 **Breathing Patterns**
 - **4-7-8**: 4s inhale, 7s hold, 8s exhale
@@ -72,7 +72,7 @@ Minimum terminal size: **60×24**.
 
 ```
 src/
-├── main.rs              # 30 FPS event loop, animate::tick()
+├── main.rs              # 30 FPS event loop, SessionAnimator::tick()
 ├── app.rs               # State machine (Menu→Setup→Session→Results→History)
 ├── animator.rs          # SessionAnimator — animated color/label/pulse fields
 ├── engine/
@@ -93,7 +93,7 @@ BreathingEngine::phase_progress()  →  cubic_in_out()  →  circle radius
                                                         →  hold pulse
 ```
 
-The engine owns timing. `animate` owns visual interpolation.
+The engine owns timing. `animator.rs` owns visual interpolation.
 
 ## Performance
 
@@ -111,7 +111,6 @@ The engine owns timing. `animate` owns visual interpolation.
 | `ratatui 0.27` | TUI layout and rendering |
 | `crossterm 0.27` | Terminal I/O |
 | `tokio` | Async runtime |
-| `animate` | Easing, color crossfade, typewriter animation |
 | `serde_json` | Session persistence |
 | `uuid`, `chrono`, `dirs`, `anyhow` | Utilities |
 

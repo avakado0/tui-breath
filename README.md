@@ -2,6 +2,8 @@
 
 A terminal-based breathing guide built in Rust. Guides you through breathing exercises with an animated glowing orb, smooth color transitions, and automatic session tracking.
 
+![demo](demo.gif)
+
 ## Features
 
 **Animated Visualization**

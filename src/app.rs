@@ -24,7 +24,7 @@ pub struct MenuState {
 #[derive(Debug, Clone)]
 pub struct SetupState {
     pub pattern_idx: usize,
-    pub duration_minutes: u32,
+    pub duration_units: u32,
     pub tempo: f64,
     pub selected_field: SetupField,
 }
@@ -119,7 +119,7 @@ impl App {
                 KeyCode::Enter | KeyCode::Char(' ') => {
                     self.state = AppState::Setup(SetupState {
                         pattern_idx: menu_state.selected_pattern_idx,
-                        duration_minutes: 5,
+                        duration_units: 30,
                         tempo: 1.0,
                         selected_field: SetupField::Duration,
                     });
@@ -151,17 +151,17 @@ impl App {
                     };
                     self.state = AppState::Setup(setup_state);
                 }
-                KeyCode::Char('+') => {
+                KeyCode::Char('+') | KeyCode::Up => {
                     match setup_state.selected_field {
-                        SetupField::Duration => setup_state.duration_minutes = (setup_state.duration_minutes + 1).min(60),
+                        SetupField::Duration => setup_state.duration_units = (setup_state.duration_units + 1).min(100),
                         SetupField::Tempo => setup_state.tempo = (setup_state.tempo + 0.1).min(2.0),
                     }
                     self.state = AppState::Setup(setup_state);
                 }
-                KeyCode::Char('-') => {
+                KeyCode::Char('-') | KeyCode::Down => {
                     match setup_state.selected_field {
                         SetupField::Duration => {
-                            setup_state.duration_minutes = setup_state.duration_minutes.saturating_sub(1).max(1)
+                            setup_state.duration_units = setup_state.duration_units.saturating_sub(1).max(1)
                         }
                         SetupField::Tempo => setup_state.tempo = (setup_state.tempo - 0.1).max(0.5),
                     }
@@ -169,7 +169,8 @@ impl App {
                 }
                 KeyCode::Enter | KeyCode::Char(' ') => {
                     let pattern = &crate::engine::PATTERNS[setup_state.pattern_idx];
-                    let duration_secs = (setup_state.duration_minutes as f64) * 60.0;
+                    let base_cycle_secs: f64 = pattern.phases.iter().map(|p| p.duration_secs).sum();
+                    let duration_secs = setup_state.duration_units as f64 * base_cycle_secs / setup_state.tempo;
                     let manager = SessionManager::new(pattern, duration_secs, setup_state.tempo);
                     let first_phase = manager.engine.current_phase();
                     self.session_animator = Some(

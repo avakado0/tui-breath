@@ -76,8 +76,12 @@ pub fn draw(f: &mut Frame, app: &App) {
         height: card_h.saturating_sub(4),
     };
 
+    let base_cycle_secs: f64 = pattern.phases.iter().map(|p| p.duration_secs).sum();
+    let session_secs = setup_state.duration_units as f64 * base_cycle_secs / setup_state.tempo;
+    let session_mins = session_secs / 60.0;
+
     f.render_widget(
-        Paragraph::new(format!("{} minutes", setup_state.duration_minutes))
+        Paragraph::new(format!("{} units  (≈ {:.1} min)", setup_state.duration_units, session_mins))
             .alignment(Alignment::Center)
             .style(if dur_selected {
                 Style::default().fg(Color::Cyan).bold()
@@ -87,20 +91,14 @@ pub fn draw(f: &mut Frame, app: &App) {
         Rect { x: dur_inner.x, y: dur_inner.y, width: dur_inner.width, height: 1 },
     );
 
-    let total_pattern_secs: f64 = pattern.phases.iter()
-        .map(|p| p.duration_secs / setup_state.tempo)
-        .sum();
-    let session_secs = setup_state.duration_minutes as f64 * 60.0;
-    let est_cycles = (session_secs / total_pattern_secs) as u32;
-
     f.render_widget(
-        Paragraph::new("total session length")
+        Paragraph::new("1 unit = 1 complete breathing cycle")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Rgb(110, 100, 135)).dim()),
         Rect { x: dur_inner.x, y: dur_inner.y + 1, width: dur_inner.width, height: 1 },
     );
     f.render_widget(
-        Paragraph::new(format!("≈ {} breathing cycles", est_cycles))
+        Paragraph::new(format!("≈ {} breathing cycles", setup_state.duration_units))
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Rgb(90, 80, 115)).dim()),
         Rect { x: dur_inner.x, y: dur_inner.y + 2, width: dur_inner.width, height: 1 },
@@ -163,9 +161,7 @@ pub fn draw(f: &mut Frame, app: &App) {
         Rect { x: inner.x, y: bar_y, width: inner.width, height: 1 },
     );
 
-    let total_adj: f64 = pattern.phases.iter()
-        .map(|p| p.duration_secs / setup_state.tempo)
-        .sum();
+    let total_adj: f64 = base_cycle_secs / setup_state.tempo;
     let bar_w = (inner.width as f64 * 0.88) as usize;
     let bar_x = inner.x + ((inner.width as f64 * 0.06) as u16);
 
@@ -243,7 +239,7 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     // Footer
     f.render_widget(
-        Paragraph::new("[Tab] Switch field   [+/-] Adjust   [Enter] Start   [Esc] Back")
+        Paragraph::new("[Tab] Switch field   [↑/↓] or [+/-] Adjust   [Enter] Start   [Esc] Back")
             .alignment(Alignment::Center)
             .style(Style::default().dim()),
         Rect {

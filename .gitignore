@@ -28,3 +28,7 @@ demo.tape
 # Tool internals
 .pi/
 workspace/
+_plans/
+#creds
+
+.env

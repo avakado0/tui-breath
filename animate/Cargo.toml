@@ -1,0 +1,3 @@
+[workspace]
+members = ["animate", "animate-core", "animate-macros"]
+resolver = "2"

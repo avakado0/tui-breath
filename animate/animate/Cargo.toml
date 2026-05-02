@@ -1,0 +1,28 @@
+[package]
+authors = ["vyfor"]
+categories = ["command-line-interface"]
+description = "Animation library for Ratatui"
+edition = "2024"
+keywords = ["terminal", "tui", "cli", "animation", "ratatui"]
+license = "MIT"
+name = "animate"
+repository = "https://github.com/vyfor/animate"
+version = "0.3.0"
+readme = "../README.md"
+
+[dependencies]
+animate-core = { path = "../animate-core", package = "animate-core", version = "0.3.0" }
+animate-macros = { path = "../animate-macros", package = "animate-macros", version = "0.3.0" }
+
+[dev-dependencies]
+ratatui = "0.30"
+crossterm = "0.29"
+criterion = "0.8"
+
+[features]
+default = []
+ratatui = ["animate-core/ratatui"]
+
+[[bench]]
+name = "animate"
+harness = false

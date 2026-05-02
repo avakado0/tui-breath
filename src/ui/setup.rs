@@ -92,16 +92,10 @@ pub fn draw(f: &mut Frame, app: &App) {
     );
 
     f.render_widget(
-        Paragraph::new("1 unit = 1 complete breathing cycle")
+        Paragraph::new("1 unit = 1 breathing cycle")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Rgb(110, 100, 135)).dim()),
         Rect { x: dur_inner.x, y: dur_inner.y + 1, width: dur_inner.width, height: 1 },
-    );
-    f.render_widget(
-        Paragraph::new(format!("≈ {} breathing cycles", setup_state.duration_units))
-            .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::Rgb(90, 80, 115)).dim()),
-        Rect { x: dur_inner.x, y: dur_inner.y + 2, width: dur_inner.width, height: 1 },
     );
 
     // Speed card

@@ -7,7 +7,6 @@ pub mod setup;
 pub mod session;
 pub mod results;
 pub mod history;
-pub mod widgets;
 
 pub fn draw(f: &mut Frame, app: &App) {
     match &app.state {

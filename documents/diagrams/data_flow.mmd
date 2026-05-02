@@ -1,0 +1,78 @@
+flowchart TD
+    START["Session Started<br/>(pattern, duration, tempo)"]
+
+    TICK["Event::Tick<br/>(every 100ms)"]
+
+    ENGINE["BreathingEngine.tick<br/>(delta_secs)<br/>Copy struct"]
+
+    CALC["Calculate:<br/>phase_elapsed<br/>phase_progress<br/>completion_percent<br/>cycle_count"]
+
+    PHASE["Phase Transition?<br/>elapsed >= duration"]
+
+    LOG["Log Event<br/>(phase change,<br/>pause, complete)"]
+
+    MANAGER["SessionManager<br/>(accumulate events)"]
+
+    DRAW["Calculate Display:<br/>breathing_bar width<br/>countdown timer<br/>phase color<br/>progress gauge"]
+
+    RENDER["UI Render<br/>(ratatui frame)"]
+
+    INTERACT["User Input<br/>(pause, beep, end)"]
+
+    UPDATE["Update Engine State<br/>toggle_pause()<br/>or abort"]
+
+    COMPLETE["Session Complete?<br/>total_elapsed >= target"]
+
+    CALC_METRICS["Calculate Metrics:<br/>cycles completed<br/>pauses count<br/>completion %<br/>timing stats"]
+
+    RESULTS["Results State<br/>(show metrics)"]
+
+    SAVE["Save Decision<br/>(user presses s)"]
+
+    SERIALIZE["Serialize to JSON<br/>(Session struct)"]
+
+    WRITE["Write to Disk<br/>~/.local/share/<br/>tui_breath/sessions/<br/>UUID.json"]
+
+    INDEX["Update Index<br/>~/.local/share/<br/>tui_breath/<br/>index.json"]
+
+    MENU["Return to Menu"]
+
+    START --> TICK
+
+    TICK -->|delta: 0.1s| ENGINE
+    ENGINE -->|immutable copy| CALC
+    CALC --> PHASE
+    PHASE -->|yes| LOG
+    PHASE -->|no| DRAW
+    LOG --> MANAGER
+    MANAGER --> CALC
+
+    CALC --> DRAW
+    DRAW --> RENDER
+
+    INTERACT -->|p key| UPDATE
+    INTERACT -->|b key| UPDATE
+    INTERACT -->|e key| UPDATE
+
+    UPDATE -->|modify engine| ENGINE
+
+    RENDER --> INTERACT
+
+    COMPLETE -->|no| TICK
+    COMPLETE -->|yes| CALC_METRICS
+
+    CALC_METRICS --> RESULTS
+
+    RESULTS --> SAVE
+    SAVE -->|user presses s| SERIALIZE
+    SAVE -->|skip| MENU
+
+    SERIALIZE --> WRITE
+    WRITE --> INDEX
+    INDEX --> MENU
+
+    style ENGINE fill:#50c878,color:#fff
+    style MANAGER fill:#ffa500,color:#fff
+    style TICK fill:#4a90e2,color:#fff
+    style RENDER fill:#ff6b6b,color:#fff
+    style WRITE fill:#1a73e8,color:#fff

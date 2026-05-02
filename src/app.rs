@@ -43,7 +43,6 @@ pub struct SessionState {
 #[derive(Debug, Clone)]
 pub struct ResultsState {
     pub manager: SessionManager,
-    pub saved: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -201,7 +200,7 @@ impl App {
                     let mut manager = session.manager;
                     manager.abandon();
                     self.session_animator = None;
-                    self.state = AppState::Results(ResultsState { manager, saved: false });
+                    self.state = AppState::Results(ResultsState { manager });
                 }
                 _ => {}
             }
@@ -281,7 +280,7 @@ impl App {
                 let mut manager = session_state.manager.clone();
                 manager.complete();
                 self.session_animator = None;
-                self.state = AppState::Results(ResultsState { manager, saved: false });
+                self.state = AppState::Results(ResultsState { manager });
             }
         }
     }

@@ -22,10 +22,6 @@ impl Store {
         Ok(Self { data_dir })
     }
 
-    pub fn data_dir(&self) -> &PathBuf {
-        &self.data_dir
-    }
-
     pub fn sessions_dir(&self) -> PathBuf {
         self.data_dir.join("sessions")
     }
@@ -58,13 +54,6 @@ impl Store {
         let json = fs::read_to_string(index_path)?;
         let entries: Vec<IndexEntry> = serde_json::from_str(&json)?;
         Ok(entries)
-    }
-
-    pub fn load_session(&self, session_id: &str) -> Result<SessionRecord> {
-        let path = self.sessions_dir().join(format!("{}.json", session_id));
-        let json = fs::read_to_string(path)?;
-        let record: SessionRecord = serde_json::from_str(&json)?;
-        Ok(record)
     }
 
     fn update_index(&self, record: &SessionRecord) -> Result<()> {
@@ -100,11 +89,10 @@ fn session_manager_to_record(manager: &SessionManager) -> SessionRecord {
     let engine = &manager.engine;
     let pattern = engine.pattern;
 
-    let elapsed_secs = engine.total_elapsed_secs as u32;
     let target_secs = engine.duration_target_secs as u32;
 
     let breaths_per_minute = if engine.total_elapsed_secs > 0.0 {
-        (engine.cycle_count as f64 / engine.total_elapsed_secs * 60.0)
+        engine.cycle_count as f64 / engine.total_elapsed_secs * 60.0
     } else {
         0.0
     };

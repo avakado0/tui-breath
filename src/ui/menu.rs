@@ -1,7 +1,7 @@
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 
-use crate::app::{App, AppState, MenuState};
+use crate::app::{App, AppState};
 use crate::engine::PATTERNS;
 
 pub fn draw(f: &mut Frame, app: &App) {

@@ -1,0 +1,66 @@
+graph LR
+    subgraph Input["Input Sources"]
+        T["Tick<br/>(100ms<br/>interval)"]
+        K["Keyboard<br/>(j, k, Enter,<br/>p, b, e, q)"]
+        R["Terminal<br/>Resize<br/>(width, height)"]
+    end
+
+    subgraph EventGen["Event Generation<br/>(main.rs)"]
+        PL["poll_events()<br/>async"]
+        EQ["Event Queue<br/>(Event enum)"]
+    end
+
+    subgraph Handler["Event Handler<br/>(app.rs)"]
+        HE["handle_event<br/>(state, event)"]
+        ROUTE["Match state<br/>& transition"]
+    end
+
+    subgraph StateUpdate["State Update"]
+        ENG["If Session:<br/>engine.tick<br/>or engine.toggle_pause"]
+        APP["Update AppState<br/>variant"]
+    end
+
+    subgraph Render["Render Pipeline<br/>(ui/mod.rs)"]
+        DRAW["ui.draw()<br/>(match state)"]
+        FRAME["ratatui<br/>Frame"]
+    end
+
+    subgraph Output["Output"]
+        TERM["Terminal<br/>Display"]
+    end
+
+    T -->|generates| PL
+    K -->|generates| PL
+    R -->|generates| PL
+
+    PL -->|enqueues| EQ
+    EQ -->|dispatches| HE
+
+    HE -->|evaluates| ROUTE
+    ROUTE -->|Menu state?| HE
+    ROUTE -->|Setup state?| HE
+    ROUTE -->|Session state?| ENG
+    ROUTE -->|Results state?| HE
+    ROUTE -->|History state?| HE
+
+    ENG -->|modifies engine| APP
+    HE -->|transitions| APP
+
+    APP -->|state changed| DRAW
+    DRAW -->|renders to| FRAME
+    FRAME -->|buffer| TERM
+
+    TERM -->|user sees| K
+
+    style T fill:#4a90e2,color:#fff
+    style K fill:#4a90e2,color:#fff
+    style R fill:#4a90e2,color:#fff
+    style PL fill:#9b59b6,color:#fff
+    style EQ fill:#9b59b6,color:#fff
+    style HE fill:#e74c3c,color:#fff
+    style ROUTE fill:#e74c3c,color:#fff
+    style ENG fill:#50c878,color:#fff
+    style APP fill:#e74c3c,color:#fff
+    style DRAW fill:#ff6b6b,color:#fff
+    style FRAME fill:#ff6b6b,color:#fff
+    style TERM fill:#1a73e8,color:#fff

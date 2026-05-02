@@ -1,0 +1,105 @@
+graph LR
+    subgraph Core["Core"]
+        Main["main.rs<br/>(entry point)"]
+        App["app.rs<br/>(state machine)"]
+        Events["events.rs<br/>(types)"]
+        Audio["audio.rs<br/>(beeping)"]
+    end
+
+    subgraph Engine["Engine<br/>(Pure Computation)"]
+        EngMod["engine/mod.rs"]
+        Breathing["breathing.rs<br/>(BreathingEngine)"]
+        Patterns["patterns.rs<br/>(Pattern defs)"]
+        Session["session.rs<br/>(SessionManager)"]
+    end
+
+    subgraph UI["UI<br/>(Rendering)"]
+        UIMod["ui/mod.rs<br/>(dispatcher)"]
+        Menu["menu.rs"]
+        Setup["setup.rs"]
+        SessionUI["session.rs"]
+        Results["results.rs"]
+        History["history.rs"]
+        WidgetMod["widgets/mod.rs"]
+        BreathingBar["breathing_bar.rs"]
+        PhaseMap["phase_map.rs"]
+    end
+
+    subgraph Storage["Storage<br/>(I/O)"]
+        StorageMod["storage/mod.rs"]
+        Store["store.rs"]
+        Schema["schema.rs"]
+    end
+
+    subgraph External["External Crates"]
+        Ratatui["ratatui"]
+        Crossterm["crossterm"]
+        Tokio["tokio"]
+        Serde["serde_json"]
+    end
+
+    Main -->|initializes| App
+    Main -->|uses| Events
+    Main -->|async runtime| Tokio
+
+    App -->|reads/writes| Events
+    App -->|uses| EngMod
+    App -->|uses| UIMod
+    App -->|uses| Audio
+    App -->|uses| StorageMod
+
+    EngMod -->|exports| Breathing
+    EngMod -->|exports| Patterns
+    EngMod -->|exports| Session
+
+    Breathing -->|references| Patterns
+    Session -->|wraps| Breathing
+
+    UIMod -->|routes to| Menu
+    UIMod -->|routes to| Setup
+    UIMod -->|routes to| SessionUI
+    UIMod -->|routes to| Results
+    UIMod -->|routes to| History
+    UIMod -->|renders| Ratatui
+
+    Menu -->|renders| Ratatui
+    Setup -->|renders| Ratatui
+    SessionUI -->|renders| Ratatui
+    SessionUI -->|uses| WidgetMod
+    Results -->|renders| Ratatui
+    History -->|renders| Ratatui
+
+    WidgetMod -->|exports| BreathingBar
+    WidgetMod -->|exports| PhaseMap
+    BreathingBar -->|implements Widget| Ratatui
+    PhaseMap -->|implements Widget| Ratatui
+
+    StorageMod -->|exports| Store
+    StorageMod -->|exports| Schema
+    Store -->|reads/writes| Schema
+    Store -->|file I/O| Serde
+    Schema -->|serializes| Serde
+
+    Crossterm -->|provides| Events
+
+    style Main fill:#4a90e2,color:#fff
+    style App fill:#e74c3c,color:#fff
+    style EngMod fill:#50c878,color:#fff
+    style Breathing fill:#50c878,color:#fff
+    style Patterns fill:#50c878,color:#fff
+    style Session fill:#50c878,color:#fff
+    style UIMod fill:#ff6b6b,color:#fff
+    style Menu fill:#ff6b6b,color:#fff
+    style Setup fill:#ff6b6b,color:#fff
+    style SessionUI fill:#ff6b6b,color:#fff
+    style Results fill:#ff6b6b,color:#fff
+    style History fill:#ff6b6b,color:#fff
+    style BreathingBar fill:#ff6b6b,color:#fff
+    style PhaseMap fill:#ff6b6b,color:#fff
+    style StorageMod fill:#ffa500,color:#fff
+    style Store fill:#ffa500,color:#fff
+    style Schema fill:#ffa500,color:#fff
+    style Ratatui fill:#9b59b6,color:#fff
+    style Crossterm fill:#9b59b6,color:#fff
+    style Tokio fill:#9b59b6,color:#fff
+    style Serde fill:#9b59b6,color:#fff

@@ -1,0 +1,8 @@
+{
+  "allowedWriteDirs": [
+    "_plans",
+    "workspace",
+    "documents",
+    "documents/diagrams"
+  ]
+}

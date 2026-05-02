@@ -1,0 +1,56 @@
+stateDiagram-v2
+    [*] --> Menu
+
+    Menu --> Setup: [Enter / Space]\nselect pattern
+    Menu --> History: [h]\nview history
+    Menu --> Menu: [j / ↓]\nscroll down
+    Menu --> Menu: [k / ↑]\nscroll up
+    Menu --> Menu: [b]\ntoggle beeping
+    Menu --> Quitting: [q]\nquit
+
+    Setup --> Session: [Enter / Space]\nstart session
+    Setup --> Setup: [Tab]\nswitch field
+    Setup --> Setup: [+]\nincrease value
+    Setup --> Setup: [-]\ndecrease value
+    Setup --> Menu: [Esc]\ncancel setup
+
+    Session --> Results: [session complete]\ntarget duration reached
+    Session --> Results: [e]\nend early
+    Session --> Session: [p / Space]\npause/resume
+    Session --> Session: [b]\ntoggle audio beep
+    Session --> Quitting: [q / Ctrl+C]\nabandon session
+
+    Results --> Menu: [Enter / Esc]\nreturn to menu
+    Results --> Menu: [s]\nsave session
+
+    History --> History: [j / ↓]\nscroll down
+    History --> History: [k / ↑]\nscroll up
+    History --> Menu: [Esc]\nback to menu
+
+    Quitting --> [*]
+
+    note right of Menu
+        selected_pattern_idx
+        tracks cursor position
+    end note
+
+    note right of Setup
+        duration_minutes: 1-60
+        tempo: 0.5x - 2.0x
+        selected_field: Duration | Tempo
+    end note
+
+    note right of Session
+        SessionManager wraps BreathingEngine
+        Engine ticks every 100ms
+        Phases auto-transition
+        Pause toggles is_paused flag
+    end note
+
+    note right of Results
+        Metrics calculated:
+        - cycles completed
+        - total duration
+        - completion %
+        - pauses count
+    end note

@@ -1,4 +1,4 @@
-use super::patterns::{Pattern, PhaseStyle};
+use super::patterns::Pattern;
 
 #[derive(Clone, Copy, Debug)]
 pub struct BreathingEngine {

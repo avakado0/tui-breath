@@ -1,0 +1,104 @@
+graph TD
+    subgraph MainLoop["Main Loop Layer"]
+        L["main.rs<br/>(terminal setup,<br/>event loop,<br/>async runtime)"]
+        E["events.rs<br/>(Event enum:<br/>Tick, Key, Resize)"]
+    end
+
+    subgraph AppLayer["Application Layer"]
+        A["app.rs<br/>(AppState machine,<br/>event handler,<br/>transitions)"]
+        B["audio.rs<br/>(Beeper:<br/>system beeps)"]
+    end
+
+    subgraph EngineLayer["Breathing Engine"]
+        EN["engine/breathing.rs<br/>(BreathingEngine:<br/>phase progression,<br/>timing, pause/resume)"]
+        PA["engine/patterns.rs<br/>(Pattern: struct,<br/>phases,<br/>4-7-8, Box,<br/>Diaphragmatic)"]
+        SM["engine/session.rs<br/>(SessionManager:<br/>lifecycle,<br/>event logging)"]
+    end
+
+    subgraph UILayer["User Interface Layer"]
+        UIM["ui/mod.rs<br/>(screen dispatcher<br/>router)"]
+        MENU["ui/menu.rs<br/>(pattern selection<br/>list widget)"]
+        SETUP["ui/setup.rs<br/>(duration &amp; tempo<br/>configuration)"]
+        SESSION["ui/session.rs<br/>(active session<br/>animated)"]
+        RESULTS["ui/results.rs<br/>(metrics table<br/>display)"]
+        HISTORY["ui/history.rs<br/>(scrollable<br/>history browser)"]
+        WID["ui/widgets/<br/>breathing_bar.rs<br/>phase_map.rs<br/>(custom widgets)"]
+    end
+
+    subgraph StorageLayer["Storage & Serialization"]
+        STO["storage/store.rs<br/>(file I/O,<br/>session save/load,<br/>index management)"]
+        SCH["storage/schema.rs<br/>(Session, IndexEntry,<br/>serde JSON<br/>structures)"]
+    end
+
+    subgraph External["External Dependencies"]
+        RATATUI["ratatui 0.27<br/>(TUI framework,<br/>widgets, layout)"]
+        CROSSTERM["crossterm 0.27<br/>(terminal events,<br/>raw mode)"]
+        TOKIO["tokio 1.35<br/>(async runtime,<br/>timers, channels)"]
+        SERDE["serde/serde_json<br/>(serialization)"]
+        OTHER["chrono, uuid,<br/>dirs, anyhow<br/>(utilities)"]
+    end
+
+    L -->|creates| E
+    L -->|runs| A
+    L -->|initializes| RATATUI
+    L -->|enables raw mode| CROSSTERM
+
+    E -->|Tick: 100ms| A
+    E -->|Key events| A
+    E -->|Resize events| A
+
+    A -->|state transitions| A
+    A -->|sends Tick to| EN
+    A -->|routes to| UIM
+    A -->|controls| B
+    A -->|saves via| STO
+
+    EN -->|references| PA
+    EN -->|wrapped by| SM
+    SM -->|stores events| SM
+
+    UIM -->|dispatches| MENU
+    UIM -->|dispatches| SETUP
+    UIM -->|dispatches| SESSION
+    UIM -->|dispatches| RESULTS
+    UIM -->|dispatches| HISTORY
+
+    SESSION -->|uses| WID
+    SESSION -->|renders via| RATATUI
+    MENU -->|renders via| RATATUI
+    SETUP -->|renders via| RATATUI
+    RESULTS -->|renders via| RATATUI
+    HISTORY -->|renders via| RATATUI
+
+    STO -->|serializes| SCH
+    SCH -->|uses| SERDE
+
+    SM -->|persisted by| STO
+
+    A -->|uses async| TOKIO
+    L -->|poll events| CROSSTERM
+
+    RATATUI --> OTHER
+    TOKIO --> OTHER
+
+    style L fill:#4a90e2,color:#fff
+    style E fill:#4a90e2,color:#fff
+    style A fill:#e74c3c,color:#fff
+    style B fill:#e74c3c,color:#fff
+    style EN fill:#50c878,color:#fff
+    style PA fill:#50c878,color:#fff
+    style SM fill:#50c878,color:#fff
+    style UIM fill:#ff6b6b,color:#fff
+    style MENU fill:#ff6b6b,color:#fff
+    style SETUP fill:#ff6b6b,color:#fff
+    style SESSION fill:#ff6b6b,color:#fff
+    style RESULTS fill:#ff6b6b,color:#fff
+    style HISTORY fill:#ff6b6b,color:#fff
+    style WID fill:#ff6b6b,color:#fff
+    style STO fill:#ffa500,color:#fff
+    style SCH fill:#ffa500,color:#fff
+    style RATATUI fill:#9b59b6,color:#fff
+    style CROSSTERM fill:#9b59b6,color:#fff
+    style TOKIO fill:#9b59b6,color:#fff
+    style SERDE fill:#9b59b6,color:#fff
+    style OTHER fill:#9b59b6,color:#fff

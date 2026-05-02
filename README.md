@@ -22,8 +22,9 @@ A terminal-based breathing guide built in Rust. Guides you through breathing exe
 - **Diaphragmatic**: 4s inhale, 6s exhale
 
 **Customization**
-- Session duration: 1–60 minutes
-- Tempo multiplier: 0.5×–2.0× (scales all phase durations)
+- Session duration: 1–100 breathing cycles (1 unit = 1 complete cycle, shown in minutes)
+- Breathing speed: 0.5×–2.0× (scales all phase durations)
+
 - Audio beep on phase transitions (toggle with `b`)
 
 **Session Tracking**
@@ -47,8 +48,8 @@ Minimum terminal size: **60×24**.
 | Menu | `j/k` `↑/↓` | Navigate patterns |
 | Menu | `Enter` | Select |
 | Menu | `h` | History |
-| Setup | `Tab` | Switch field (Duration / Tempo) |
-| Setup | `+/-` | Adjust value |
+| Setup | `Tab` | Switch field (Duration / Breathing Speed) |
+| Setup | `↑/↓` or `+/-` | Adjust value |
 | Setup | `Enter` | Start session |
 | Session | `p` / `Space` | Pause / Resume |
 | Session | `e` / `Esc` | End early |

@@ -278,6 +278,7 @@ impl App {
             if session_state.manager.engine.is_complete() {
                 let mut manager = session_state.manager.clone();
                 manager.complete();
+                let _ = self.storage.save_session(&manager);
                 self.session_animator = None;
                 self.state = AppState::Results(ResultsState { manager });
             }

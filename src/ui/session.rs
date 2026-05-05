@@ -163,11 +163,12 @@ fn render_breathing_circle(f: &mut Frame, area: Rect, app: &App) {
     // Max radius limited by height (cy) and by width (cx/2 after aspect correction)
     let max_r = cy.min(cx / 2.0) * 0.95;
 
-    let base_r = match phase.style {
-        PhaseStyle::Rising => progress * max_r,
-        PhaseStyle::Falling => (1.0 - progress) * max_r,
-        PhaseStyle::Steady => max_r,
-    };
+    let ratio = crate::engine::patterns::fill_ratio(
+        engine.pattern.phases,
+        engine.current_phase_idx,
+        progress,
+    );
+    let base_r = ratio * max_r;
 
     // Glow extends 2 char-rows beyond the fill boundary
     let glow_r = base_r + 2.0;

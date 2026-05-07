@@ -31,7 +31,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     } else {
         // Table header
         let header = Row::new(vec![
-            Cell::from("Date").style(Style::default().bold()),
+            Cell::from("Date & Time").style(Style::default().bold()),
             Cell::from("Pattern").style(Style::default().bold()),
             Cell::from("Duration").style(Style::default().bold()),
             Cell::from("Completion").style(Style::default().bold()),
@@ -49,7 +49,7 @@ pub fn draw(f: &mut Frame, app: &App) {
                     Style::default()
                 };
 
-                let date_str = entry.start_time.format("%Y-%m-%d").to_string();
+                let date_str = entry.start_time.format("%Y-%m-%d %H:%M").to_string();
                 let duration_secs = entry.duration_target;
                 let mins = duration_secs / 60;
                 let secs = duration_secs % 60;
@@ -65,10 +65,10 @@ pub fn draw(f: &mut Frame, app: &App) {
             .collect();
 
         let widths = [
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
+            Constraint::Percentage(34),
+            Constraint::Percentage(28),
+            Constraint::Percentage(18),
+            Constraint::Percentage(20),
         ];
         let table = Table::new(rows, &widths)
             .header(header)

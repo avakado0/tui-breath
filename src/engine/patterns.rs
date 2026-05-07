@@ -1,4 +1,6 @@
-// Breathing pattern definitions
+// Breathing pattern definitions.
+// Mirror lives at breath4life-web/src/patterns.ts. Sync manually on changes.
+// Web side carries an extra optional `channel: "nose" | "mouth"` field per phase.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhaseStyle {
@@ -92,7 +94,68 @@ pub const PATTERN_DIAPHRAGMATIC: Pattern = Pattern {
     ],
 };
 
-pub const PATTERNS: &[Pattern] = &[PATTERN_478, PATTERN_BOX, PATTERN_DIAPHRAGMATIC];
+pub const PATTERN_BREATH_OF_FIRE: Pattern = Pattern {
+    id: "breath_of_fire",
+    display_name: "Breath of Fire",
+    description: "Rapid Kapalabhati: passive inhale 0.5s, sharp exhale 0.5s",
+    phases: &[
+        Phase {
+            name: "Inhale",
+            duration_secs: 0.5,
+            style: PhaseStyle::Rising,
+        },
+        Phase {
+            name: "Exhale",
+            duration_secs: 0.5,
+            style: PhaseStyle::Falling,
+        },
+    ],
+};
+
+pub const PATTERN_BHASTRIKA: Pattern = Pattern {
+    id: "bhastrika",
+    display_name: "Bhastrika (Bellows Breath)",
+    description: "Forceful equal breath: Inhale 1s, Exhale 1s",
+    phases: &[
+        Phase {
+            name: "Inhale",
+            duration_secs: 1.0,
+            style: PhaseStyle::Rising,
+        },
+        Phase {
+            name: "Exhale",
+            duration_secs: 1.0,
+            style: PhaseStyle::Falling,
+        },
+    ],
+};
+
+pub const PATTERN_STIMULATING: Pattern = Pattern {
+    id: "stimulating",
+    display_name: "Stimulating Breath",
+    description: "Rapid 3-part energizer: Inhale 0.4s, Exhale 0.4s",
+    phases: &[
+        Phase {
+            name: "Inhale",
+            duration_secs: 0.4,
+            style: PhaseStyle::Rising,
+        },
+        Phase {
+            name: "Exhale",
+            duration_secs: 0.4,
+            style: PhaseStyle::Falling,
+        },
+    ],
+};
+
+pub const PATTERNS: &[Pattern] = &[
+    PATTERN_478,
+    PATTERN_BOX,
+    PATTERN_DIAPHRAGMATIC,
+    PATTERN_BREATH_OF_FIRE,
+    PATTERN_BHASTRIKA,
+    PATTERN_STIMULATING,
+];
 
 /// Visual fill ratio (0.0 = empty, 1.0 = full) for a given phase + progress.
 ///

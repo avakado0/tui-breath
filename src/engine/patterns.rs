@@ -1,6 +1,5 @@
 // Breathing pattern definitions.
 // Mirror lives at breath4life-web/src/patterns.ts. Sync manually on changes.
-// Web side carries an extra optional `channel: "nose" | "mouth"` field per phase.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PhaseStyle {
@@ -9,11 +8,18 @@ pub enum PhaseStyle {
     Steady,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Channel {
+    Nose,
+    Mouth,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct Phase {
     pub name: &'static str,
     pub duration_secs: f64,
     pub style: PhaseStyle,
+    pub channel: Option<Channel>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -34,16 +40,19 @@ pub const PATTERN_478: Pattern = Pattern {
             name: "Inhale",
             duration_secs: 4.0,
             style: PhaseStyle::Rising,
+            channel: Some(Channel::Nose),
         },
         Phase {
             name: "Hold",
             duration_secs: 7.0,
             style: PhaseStyle::Steady,
+            channel: None,
         },
         Phase {
             name: "Exhale",
             duration_secs: 8.0,
             style: PhaseStyle::Falling,
+            channel: Some(Channel::Mouth),
         },
     ],
 };
@@ -57,21 +66,25 @@ pub const PATTERN_BOX: Pattern = Pattern {
             name: "Inhale",
             duration_secs: 4.0,
             style: PhaseStyle::Rising,
+            channel: Some(Channel::Nose),
         },
         Phase {
             name: "Hold",
             duration_secs: 4.0,
             style: PhaseStyle::Steady,
+            channel: None,
         },
         Phase {
             name: "Exhale",
             duration_secs: 4.0,
             style: PhaseStyle::Falling,
+            channel: Some(Channel::Nose),
         },
         Phase {
             name: "Hold",
             duration_secs: 4.0,
             style: PhaseStyle::Steady,
+            channel: None,
         },
     ],
 };
@@ -85,11 +98,13 @@ pub const PATTERN_DIAPHRAGMATIC: Pattern = Pattern {
             name: "Inhale",
             duration_secs: 4.0,
             style: PhaseStyle::Rising,
+            channel: Some(Channel::Nose),
         },
         Phase {
             name: "Exhale",
             duration_secs: 6.0,
             style: PhaseStyle::Falling,
+            channel: Some(Channel::Nose),
         },
     ],
 };
@@ -103,11 +118,13 @@ pub const PATTERN_BREATH_OF_FIRE: Pattern = Pattern {
             name: "Inhale",
             duration_secs: 0.5,
             style: PhaseStyle::Rising,
+            channel: Some(Channel::Nose),
         },
         Phase {
             name: "Exhale",
             duration_secs: 0.5,
             style: PhaseStyle::Falling,
+            channel: Some(Channel::Nose),
         },
     ],
 };
@@ -121,11 +138,13 @@ pub const PATTERN_BHASTRIKA: Pattern = Pattern {
             name: "Inhale",
             duration_secs: 1.0,
             style: PhaseStyle::Rising,
+            channel: Some(Channel::Nose),
         },
         Phase {
             name: "Exhale",
             duration_secs: 1.0,
             style: PhaseStyle::Falling,
+            channel: Some(Channel::Nose),
         },
     ],
 };
@@ -139,11 +158,13 @@ pub const PATTERN_STIMULATING: Pattern = Pattern {
             name: "Inhale",
             duration_secs: 0.4,
             style: PhaseStyle::Rising,
+            channel: Some(Channel::Nose),
         },
         Phase {
             name: "Exhale",
             duration_secs: 0.4,
             style: PhaseStyle::Falling,
+            channel: Some(Channel::Nose),
         },
     ],
 };

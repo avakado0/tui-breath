@@ -2,8 +2,17 @@ use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::audio::Beeper;
+use crate::engine::patterns::{Channel, Phase};
 use crate::engine::SessionManager;
 use crate::storage::Store;
+
+pub(crate) fn phase_label(phase: &Phase) -> String {
+    match phase.channel {
+        Some(Channel::Nose) => format!("{} [N]", phase.name),
+        Some(Channel::Mouth) => format!("{} [M]", phase.name),
+        None => phase.name.to_string(),
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum AppState {
@@ -172,7 +181,7 @@ impl App {
                     let manager = SessionManager::new(pattern, duration_secs, setup_state.tempo);
                     let first_phase = manager.engine.current_phase();
                     self.session_animator = Some(
-                        crate::animator::SessionAnimator::for_phase(&first_phase.style, first_phase.name)
+                        crate::animator::SessionAnimator::for_phase(&first_phase.style, &phase_label(first_phase))
                     );
                     self.previous_phase_idx = manager.engine.current_phase_idx;
                     self.state = AppState::Session(SessionState { manager });
@@ -262,13 +271,12 @@ impl App {
                 self.beeper.beep();
                 let phase = session_state.manager.engine.current_phase();
                 let style = phase.style.clone();
-                let name = phase.name;
                 if let Some(anim) = self.session_animator.as_mut() {
                     let (r, g, b) = crate::animator::phase_color(&style);
                     anim.color_r.set(r);
                     anim.color_g.set(g);
                     anim.color_b.set(b);
-                    anim.phase_label.set(name.to_string());
+                    anim.phase_label.set(phase_label(phase));
                     if matches!(style, crate::engine::patterns::PhaseStyle::Steady) {
                         anim.hold_pulse.set(0.65);
                     }

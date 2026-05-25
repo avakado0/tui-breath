@@ -56,7 +56,8 @@ pub fn draw(f: &mut Frame, app: &App) {
         phase_label_owned = anim.phase_label.get().to_string();
         phase_label_owned.as_str()
     } else {
-        current_phase.name
+        phase_label_owned = crate::app::phase_label(current_phase);
+        phase_label_owned.as_str()
     };
 
     let phase_text = format!("*** {} ***\n{:.1}s remaining", phase_label, remaining);

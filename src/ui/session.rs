@@ -60,8 +60,8 @@ pub fn draw(f: &mut Frame, app: &App) {
     };
 
     let channel_str = match current_phase.channel {
-        Some(Channel::Nose) => "nose",
-        Some(Channel::Mouth) => "mouth",
+        Some(Channel::Nose) => "░ nose ░",
+        Some(Channel::Mouth) => "░ mouth ░",
         None => "",
     };
 

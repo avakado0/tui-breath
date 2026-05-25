@@ -71,7 +71,8 @@ pub fn draw(f: &mut Frame, app: &App) {
         Line::from(format!("{:.1}s remaining", remaining))
             .style(Style::default().fg(phase_color).bold()),
         Line::from(""),
-        Line::from(channel_str).style(Style::default().dim()),
+        Line::from(channel_str)
+            .style(Style::default().fg(Color::Rgb(cr / 2, cg / 2, cb / 2))),
     ]);
     let phase_para = Paragraph::new(phase_text).alignment(Alignment::Center);
 

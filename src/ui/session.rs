@@ -56,7 +56,8 @@ pub fn draw(f: &mut Frame, app: &App) {
         phase_label_owned = anim.phase_label.get().to_string();
         phase_label_owned.as_str()
     } else {
-        current_phase.name
+        phase_label_owned = crate::app::phase_label(current_phase);
+        phase_label_owned.as_str()
     };
 
     let phase_text = format!("*** {} ***\n{:.1}s remaining", phase_label, remaining);
@@ -163,11 +164,12 @@ fn render_breathing_circle(f: &mut Frame, area: Rect, app: &App) {
     // Max radius limited by height (cy) and by width (cx/2 after aspect correction)
     let max_r = cy.min(cx / 2.0) * 0.95;
 
-    let base_r = match phase.style {
-        PhaseStyle::Rising => progress * max_r,
-        PhaseStyle::Falling => (1.0 - progress) * max_r,
-        PhaseStyle::Steady => max_r,
-    };
+    let ratio = crate::engine::patterns::fill_ratio(
+        engine.pattern.phases,
+        engine.current_phase_idx,
+        progress,
+    );
+    let base_r = ratio * max_r;
 
     // Glow extends 2 char-rows beyond the fill boundary
     let glow_r = base_r + 2.0;

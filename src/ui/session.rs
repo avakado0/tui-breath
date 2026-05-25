@@ -2,7 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Gauge, Paragraph};
 
 use crate::app::{App, AppState};
-use crate::engine::patterns::PhaseStyle;
+use crate::engine::patterns::{Channel, PhaseStyle};
 
 pub fn draw(f: &mut Frame, app: &App) {
     let AppState::Session(session_state) = &app.state else {
@@ -33,8 +33,8 @@ pub fn draw(f: &mut Frame, app: &App) {
         height: area.height.saturating_sub(5),
     };
 
-    // Give circle as much vertical space as possible (reserve 7 rows for label/stats/gauge)
-    let animation_height = inner.height.saturating_sub(7).max(5);
+    // Give circle as much vertical space as possible (reserve 8 rows for label/channel/stats/gauge)
+    let animation_height = inner.height.saturating_sub(8).max(5);
     let animation_area = Rect {
         x: inner.x,
         y: inner.y,
@@ -56,20 +56,30 @@ pub fn draw(f: &mut Frame, app: &App) {
         phase_label_owned = anim.phase_label.get().to_string();
         phase_label_owned.as_str()
     } else {
-        phase_label_owned = crate::app::phase_label(current_phase);
-        phase_label_owned.as_str()
+        current_phase.name
     };
 
-    let phase_text = format!("*** {} ***\n{:.1}s remaining", phase_label, remaining);
-    let phase_para = Paragraph::new(phase_text)
-        .alignment(Alignment::Center)
-        .style(Style::default().fg(phase_color).bold());
+    let channel_str = match current_phase.channel {
+        Some(Channel::Nose) => "nose",
+        Some(Channel::Mouth) => "mouth",
+        None => "",
+    };
+
+    let phase_text = Text::from(vec![
+        Line::from(format!("*** {} ***", phase_label))
+            .style(Style::default().fg(phase_color).bold()),
+        Line::from(format!("{:.1}s remaining", remaining))
+            .style(Style::default().fg(phase_color).bold()),
+        Line::from(""),
+        Line::from(channel_str).style(Style::default().dim()),
+    ]);
+    let phase_para = Paragraph::new(phase_text).alignment(Alignment::Center);
 
     let phase_area = Rect {
         x: inner.x,
         y: inner.y + animation_height + 1,
         width: inner.width,
-        height: 3,
+        height: 4,
     };
     f.render_widget(phase_para, phase_area);
 
@@ -96,7 +106,7 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     let stats_area = Rect {
         x: inner.x,
-        y: inner.y + animation_height + 4,
+        y: inner.y + animation_height + 5,
         width: inner.width,
         height: 1,
     };
@@ -109,7 +119,7 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     let gauge_area = Rect {
         x: inner.x,
-        y: inner.y + animation_height + 5,
+        y: inner.y + animation_height + 6,
         width: inner.width,
         height: 2,
     };

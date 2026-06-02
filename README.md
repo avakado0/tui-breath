@@ -101,7 +101,7 @@ Coverage includes engine progression, hold runtime behavior, Session-mode transi
 ## Session Storage
 
 - **Linux/macOS**: `~/.local/share/tui_breath/sessions/`
-- **Windows**: `%APPDATA%\Local\tui_breath\sessions\`
+- **Windows**: `%APPDATA%\Local\tui_breath\sessions`
 - Index: `~/.local/share/tui_breath/index.json`
 
 Each saved Session keeps breathing metrics plus optional Breath Hold attempt data, and the history index stores the best hold summary for quick browsing.

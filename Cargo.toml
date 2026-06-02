@@ -1,6 +1,6 @@
 [package]
 name = "tui_breath"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Terminal breathing guide built with Rust + Ratatui. Smooth eased animations, 4-7-8 / box / diaphragmatic patterns, JSON session tracking."
 license = "MIT"

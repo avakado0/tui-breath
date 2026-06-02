@@ -25,6 +25,10 @@ Thumbs.db
 *.dylib
 demo.tape
 
+# Media
+*.mp4
+screenshots/
+
 # Tool internals
 .pi/
 workspace/

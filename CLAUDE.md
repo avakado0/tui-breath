@@ -205,3 +205,17 @@ Use structs (OOP-style) when state and behaviour cluster together. Default to fu
 ### JSON Formatting
 
 All JSON files must use **2-space indentation** — never minified or single-line.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues on `avakado0/tui-breath`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — `CONTEXT.md` + `docs/adr/` at repo root (neither exists yet; created lazily via `/grill-with-docs`). See `docs/agents/domain.md`.

@@ -105,3 +105,24 @@ Coverage includes engine progression, hold runtime behavior, Session-mode transi
 - Index: `~/.local/share/tui_breath/index.json`
 
 Each saved Session keeps breathing metrics plus optional Breath Hold attempt data, and the history index stores the best hold summary for quick browsing.
+
+### Stored Fields
+
+**Per-session JSON record:**
+- `session_id`: Unique UUID identifier
+- `start_time`, `end_time`: ISO 8601 timestamps
+- `status`: `"completed"` or `"abandoned"`
+- `type`: Pattern name (e.g., `"4-7-8"`)
+- `parameters`:
+  - `duration_target`: Planned cycle count
+  - `actual_duration_secs`: Total elapsed time
+  - `settings`: Breathing rate, pattern phases, tempo (0.5–2.0×)
+- `breath_hold`: Optional hold data with `best_seconds`, `attempt_count`, and full attempt records (timestamp, duration)
+- `history`: Full event log with timestamps (phase transitions, pauses, holds)
+
+**History index** (`index.json`) tracks:
+- Session metadata for quick browsing
+- `cycles_completed`: Actual cycles finished
+- `completion_pct`: Percentage of target duration completed
+- `best_breath_hold_seconds`: Best hold on record
+- `breath_hold_attempt_count`: Total hold attempts in that session

@@ -48,7 +48,7 @@ Menu
 ### Event Loop & Timing (main.rs)
 
 - **Single-threaded async runtime** with `tokio::main(flavor = "current_thread")`
-- **100ms tick rate** = 10 FPS animation (standard for TUI apps)
+- **33ms tick rate** = ~30 FPS animation (smooth visual feedback)
 - **Tick-driven updates**: Every component updates on `Event::Tick`, not continuous polling
 - Terminal setup/cleanup guaranteed via scope guards in `main.rs`
 
@@ -135,7 +135,7 @@ Run with `cargo test`. Add `--nocapture` to see println! debug output.
 
 **Tweaking engine timing:**
 1. Change phase durations in patterns or tempo multiplier in `src/engine/patterns.rs`
-2. Tick interval is in `main.rs` (currently `Duration::from_millis(100)`)
+2. Tick interval is in `main.rs` (currently `Duration::from_millis(33)`)
 3. Smaller ticks = smoother animation but more CPU; larger = jerky but lighter load
 
 **Adding persistence:**

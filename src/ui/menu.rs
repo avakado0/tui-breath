@@ -64,7 +64,11 @@ pub fn draw(f: &mut Frame, app: &App) {
     f.render_widget(list, list_area);
 
     // Footer
-    let beep_status = if app.beeper.is_enabled() { "🔊" } else { "🔇" };
+    let beep_status = if app.beeper.is_enabled() {
+        "🔊"
+    } else {
+        "🔇"
+    };
     let footer = Paragraph::new(format!(
         "[k/↑] Up  [j/↓] Down  [Enter] Select  [h] History  [b] {} Beep  [q] Quit",
         beep_status

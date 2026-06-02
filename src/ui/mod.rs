@@ -2,11 +2,11 @@ use ratatui::prelude::*;
 
 use crate::app::{App, AppState};
 
-pub mod menu;
-pub mod setup;
-pub mod session;
-pub mod results;
 pub mod history;
+pub mod menu;
+pub mod results;
+pub mod session;
+pub mod setup;
 
 pub fn draw(f: &mut Frame, app: &App) {
     match &app.state {

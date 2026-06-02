@@ -1,6 +1,6 @@
 # TUI Breath — Interactive Breathing Guide
 
-A terminal-based breathing guide built in Rust. Guides you through breathing exercises with an animated glowing orb, smooth color transitions, and automatic session tracking.
+A terminal-based breathing guide built in Rust. It walks you through breathing Patterns with a glowing orb, smooth phase transitions, and persistent Session history.
 
 ## Installation
 
@@ -26,16 +26,10 @@ cargo build --release
 ## Features
 
 **Animated Visualization**
-- Expanding/contracting glowing circle — grows on inhale, shrinks on exhale
-- Cubic easing for organic, non-mechanical movement
-- Three-layer atmospheric background that shifts color with each phase
-- Soft edge rendering (`▓` rim → `█` core → `░` glow halo)
-
-**Phase Animation**
-- Smooth 800ms color crossfade between phases (Cyan → Yellow → Green)
-- Typewriter phase label reveal on each transition
-- Hold phase: full orb with brightness pulse at ~900ms rhythm
-- All animations implemented in-house (Lerp, Typewriter, Pulse structs)
+- Expanding and contracting glowing orb for breathing Phases
+- Smooth color crossfades between inhale, hold, and exhale
+- Breath Hold mode with a dedicated lungs-style pixel-art counter
+- Typewriter labels and pulsing highlight animation
 
 **Breathing Patterns**
 - **4-7-8**: 4s inhale, 7s hold, 8s exhale
@@ -43,15 +37,15 @@ cargo build --release
 - **Diaphragmatic**: 4s inhale, 6s exhale
 
 **Customization**
-- Session duration: 1–100 breathing cycles (1 unit = 1 complete cycle, shown in minutes)
-- Breathing speed: 0.5×–2.0× (scales all phase durations)
-
-- Audio beep on phase transitions (toggle with `b`)
+- Session duration: 1–100 breathing Cycles
+- Breathing speed: 0.5×–2.0× Tempo scaling
+- Audio beep on phase transitions via terminal bell (toggle with `b`)
 
 **Session Tracking**
-- Metrics: cycles, pauses, completion %, breathing rate
 - Persistent JSON storage at `~/.local/share/tui_breath/`
-- Browsable history
+- Saved metrics for Cycles, pauses, completion, and breathing rate
+- Attached Breath Hold attempts on the same Session record
+- History summary that surfaces the best Breath Hold duration
 
 ## Quick Start
 
@@ -66,60 +60,35 @@ Minimum terminal size: **60×24**.
 | Menu | `h` | History |
 | Setup | `Tab` | Switch field (Duration / Breathing Speed) |
 | Setup | `↑/↓` or `+/-` | Adjust value |
-| Setup | `Enter` | Start session |
-| Session | `p` / `Space` | Pause / Resume |
-| Session | `e` / `Esc` | End early |
-| Results | `s` | Save session |
+| Setup | `Enter` | Start Session |
+| Setup | `Esc` | Back to menu |
+| Session | `p` / `Space` | Pause / Resume breathing |
+| Session | `h` | Start / End Breath Hold |
+| Session | `e` / `Esc` | End Session |
+| Results | `s` | Save again, then return to menu |
+| Results | `Enter` / `Esc` | Return to menu |
+| History | `j/k` `↑/↓` | Navigate saved Sessions |
+| History | `Esc` | Back to menu |
 | Any | `b` | Toggle beep |
-| Any | `q` | Quit |
+| Any | `q` / `Ctrl-C` | Quit |
 
 ## Architecture
 
-```
+```text
 src/
-├── main.rs              # 30 FPS event loop, SessionAnimator::tick()
-├── app.rs               # State machine (Menu→Setup→Session→Results→History)
-├── animator.rs          # SessionAnimator — animated color/label/pulse fields
+├── main.rs              # 30 FPS event loop and animation ticking
+├── app.rs               # App state machine and Session sub-mode transitions
+├── animator.rs          # Color, label, and pulse interpolation
 ├── engine/
-│   ├── breathing.rs     # BreathingEngine (Copy) — phase timing, progress
-│   ├── patterns.rs      # Pattern definitions, PhaseStyle (Rising/Steady/Falling)
-│   └── session.rs       # SessionManager — event log, metrics
-├── storage/             # JSON persistence
-└── ui/
-    └── session.rs       # Glowing circle renderer, three-zone background
+│   ├── breathing.rs     # BreathingEngine timing and Cycle progression
+│   ├── hold.rs          # Breath Hold runtime and attempt summaries
+│   ├── patterns.rs      # Pattern and Phase definitions
+│   └── session.rs       # SessionManager metrics, status, and event log
+├── storage/             # JSON persistence and history index
+└── ui/                  # Session, results, history, menu, and setup rendering
 ```
 
-**Animation pipeline:**
-```
-BreathingEngine::phase_progress()  →  cubic_in_out()  →  circle radius
-                   ↓
-           phase transition  →  SessionAnimator::set()  →  color crossfade
-                                                        →  typewriter label
-                                                        →  hold pulse
-```
-
-The engine owns timing. `animator.rs` owns visual interpolation.
-
-## Performance
-
-| Metric | Value |
-|--------|-------|
-| Refresh rate | 30 FPS (33ms ticks) |
-| Binary size | ~8MB (release, LTO) |
-| Memory | <10MB |
-| CPU | <5% |
-
-## Dependencies
-
-| Crate | Purpose |
-|-------|---------|
-| `ratatui 0.27` | TUI layout and rendering |
-| `crossterm 0.27` | Terminal I/O |
-| `tokio` | Async runtime |
-| `serde_json` | Session persistence |
-| `uuid`, `chrono`, `dirs`, `anyhow` | Utilities |
-
-Animation approach inspired by [animate](https://github.com/vyfor/animate) by vyfor.
+The engine owns timing. The animator owns interpolation. The app state machine coordinates breathing mode vs Breath Hold mode.
 
 ## Testing
 
@@ -127,11 +96,12 @@ Animation approach inspired by [animate](https://github.com/vyfor/animate) by vy
 cargo test
 ```
 
-Covers phase progression, tempo scaling, completion detection, pause/resume.
+Coverage includes engine progression, hold runtime behavior, Session-mode transitions, and storage compatibility for older history entries.
 
 ## Session Storage
 
 - **Linux/macOS**: `~/.local/share/tui_breath/sessions/`
 - **Windows**: `%APPDATA%\Local\tui_breath\sessions\`
+- Index: `~/.local/share/tui_breath/index.json`
 
-Index at `~/.local/share/tui_breath/index.json` for fast history loads.
+Each saved Session keeps breathing metrics plus optional Breath Hold attempt data, and the history index stores the best hold summary for quick browsing.

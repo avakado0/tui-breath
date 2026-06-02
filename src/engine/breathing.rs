@@ -14,11 +14,7 @@ pub struct BreathingEngine {
 }
 
 impl BreathingEngine {
-    pub fn new(
-        pattern: &'static Pattern,
-        tempo: f64,
-        duration_target_secs: f64,
-    ) -> Self {
+    pub fn new(pattern: &'static Pattern, tempo: f64, duration_target_secs: f64) -> Self {
         Self {
             pattern,
             tempo: tempo.max(0.1).min(2.0), // Clamp tempo to reasonable range
@@ -94,8 +90,8 @@ impl BreathingEngine {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::patterns::PATTERN_BOX;
+    use super::*;
 
     #[test]
     fn test_phase_progression() {
@@ -111,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_tempo_affects_duration() {
-        let mut engine = BreathingEngine::new(&PATTERN_BOX, 2.0, 60.0);
+        let engine = BreathingEngine::new(&PATTERN_BOX, 2.0, 60.0);
         let phase_duration = engine.current_phase_duration();
 
         // At tempo 2.0, 4 second phase becomes 2 seconds

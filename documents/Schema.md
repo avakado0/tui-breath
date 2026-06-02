@@ -1,51 +1,81 @@
+# Session Storage Schema
+
+`tui_breath` stores each completed or abandoned Session as JSON plus a lightweight history index for fast browsing.
+
+## Session Record
+
 ```json
-  {
-    "session_id": "string (UUID/Unique Identifier)",
-    "start_time": "datetime (Timestamp when the session began)",
-    "status": "string (e.g., 'active', 'paused', 'completed')",
-    "type": "string (e.g., 'breathing', 'data_collection', 'experiment')",
-    "parameters": {
-      "duration_target": "integer (Target duration in seconds or minutes)",
-      "settings": {
-        "rate": "float (e.g., breaths per minute, data sampling rate)",
-        "phase_parameters": {
-          "inhalation_time": "integer (Duration of inhalation)",
-          "exhalation_time": "integer (Duration of exhalation)"
-        },
-        "iterations": "integer (Number of cycles or repetitions)"
+{
+  "session_id": "uuid",
+  "start_time": "2026-06-02T12:00:00Z",
+  "end_time": "2026-06-02T12:03:10Z",
+  "status": "completed",
+  "type": "breathing",
+  "parameters": {
+    "duration_target": 180,
+    "actual_duration_secs": 150.4,
+    "settings": {
+      "rate": 8.0,
+      "phase_parameters": {
+        "inhalation_time": 4.0,
+        "exhalation_time": 8.0,
+        "hold_in_time": 7.0,
+        "hold_out_time": null
       },
-      "metadata": {
-        "user_id": "string (Identifier for the user)"
+      "iterations": 18,
+      "pattern_id": "478",
+      "tempo": 1.0
+    }
+  },
+  "breath_hold": {
+    "best_seconds": 23.1,
+    "attempt_count": 2,
+    "attempts": [
+      {
+        "started_at": "2026-06-02T12:01:00Z",
+        "ended_at": "2026-06-02T12:01:18Z",
+        "duration_secs": 18.0
       },
-      "data_log": [
-        {
-          "timestamp": "datetime",
-          "measurement": "float/string (The actual recorded value)",
-          "context": "string (Contextual information for the measurement)"                                                                                                  
-        }                                                                                                                                                                   
-      ]                                                                                                                                                                     
-    },                                                                                                                                                                      
-    "history": [                                                                                                                                                            
-      {                                                                                                                                                                     
-        "timestamp": "datetime",                                                                                                                                            
-        "event": "string (e.g., 'start', 'pause', 'measurement_taken')",                                                                                                    
-        "details": "object (Specific details about the event)"                                                                                                              
-      }                                                                                                                                                                     
-    ]                                                                                                                                                                       
-  }                                                                                                                                                      ```                  
-                                                                                                                                                                            
-  Explanation of Components:                                                                                                                                                
-                                                                                                                                                                            
-  1. session_id: A unique identifier for tracking this specific session.                                                                                                    
-  2. start_time: Records exactly when the session began.
-  3. status: Indicates the current state of the session (e.g., is it running, paused, or finished).                                                                         
-  4. type: Categorizes what kind of session this is (e.g., breathing exercise, data collection run).                                                                        
-  5. parameters: Contains the core configurable settings:                                                                                                                   
-    - duration_target: What the user aimed to achieve.                                                                                                                      
-    - settings: Holds the specific rules for the session (rates, timing, iterations).                                                                                       
-    - metadata: For contextual notes and user identification.                                                                                                               
-    - data_log: An array to store all the measured results chronologically.                                                                                                 
-  6. history: A log of significant events that occurred during the session (e.g., when a pause was hit or a measurement was finalized).                                     
-                                                                                                                                                                            
-  This structure is designed to be flexible enough to handle both timing/breathing exercises and general data recording, as implied by the context of tracking a "session." 
-                                                                                                                                                                   
+      {
+        "started_at": "2026-06-02T12:02:00Z",
+        "ended_at": "2026-06-02T12:02:23Z",
+        "duration_secs": 23.1
+      }
+    ]
+  },
+  "history": [
+    {
+      "timestamp": "2026-06-02T12:00:00Z",
+      "event": "Start",
+      "details": { "details": "Session started: 4-7-8 Breathing at tempo 1" }
+    },
+    {
+      "timestamp": "2026-06-02T12:01:00Z",
+      "event": "HoldStart",
+      "details": { "details": "Breath hold started at 60.0s" }
+    }
+  ]
+}
+```
+
+## History Index Entry
+
+```json
+{
+  "session_id": "uuid",
+  "start_time": "2026-06-02T12:00:00Z",
+  "status": "completed",
+  "pattern_id": "478",
+  "duration_target": 180,
+  "cycles_completed": 18,
+  "completion_pct": 83.6,
+  "best_breath_hold_seconds": 23.1,
+  "breath_hold_attempt_count": 2
+}
+```
+
+## Notes
+
+- `breath_hold` is optional so older Session files remain valid.
+- `best_breath_hold_seconds` and `breath_hold_attempt_count` default cleanly when older index entries are loaded.
+- `actual_duration_secs` reflects active breathing time only. Breath Hold time is tracked separately and does not inflate breathing completion.

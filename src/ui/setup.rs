@@ -31,11 +31,18 @@ pub fn draw(f: &mut Frame, app: &App) {
         Paragraph::new(pattern.display_name)
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Rgb(200, 175, 255)).bold()),
-        Rect { x: inner.x, y: inner.y, width: inner.width, height: 1 },
+        Rect {
+            x: inner.x,
+            y: inner.y,
+            width: inner.width,
+            height: 1,
+        },
     );
 
     // Phase summary: "Inhale 4s  ·  Hold 7s  ·  Exhale 8s"
-    let phase_summary = pattern.phases.iter()
+    let phase_summary = pattern
+        .phases
+        .iter()
         .map(|p| format!("{} {}s", p.name, p.duration_secs as u32))
         .collect::<Vec<_>>()
         .join("  ·  ");
@@ -43,7 +50,12 @@ pub fn draw(f: &mut Frame, app: &App) {
         Paragraph::new(phase_summary)
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Rgb(130, 120, 155))),
-        Rect { x: inner.x, y: inner.y + 1, width: inner.width, height: 1 },
+        Rect {
+            x: inner.x,
+            y: inner.y + 1,
+            width: inner.width,
+            height: 1,
+        },
     );
 
     // ── Two cards ──────────────────────────────────────
@@ -58,12 +70,25 @@ pub fn draw(f: &mut Frame, app: &App) {
     let speed_selected = setup_state.selected_field == SetupField::Tempo;
 
     // Duration card
-    let dur_border = if dur_selected { Color::Cyan } else { Color::Rgb(70, 60, 100) };
-    let dur_rect = Rect { x: inner.x, y: card_y, width: left_w, height: card_h };
+    let dur_border = if dur_selected {
+        Color::Cyan
+    } else {
+        Color::Rgb(70, 60, 100)
+    };
+    let dur_rect = Rect {
+        x: inner.x,
+        y: card_y,
+        width: left_w,
+        height: card_h,
+    };
     f.render_widget(
         Block::default()
             .title(" Duration ")
-            .title_style(Style::default().fg(if dur_selected { Color::Cyan } else { Color::Rgb(130, 120, 155) }))
+            .title_style(Style::default().fg(if dur_selected {
+                Color::Cyan
+            } else {
+                Color::Rgb(130, 120, 155)
+            }))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(dur_border)),
         dur_rect,
@@ -81,30 +106,56 @@ pub fn draw(f: &mut Frame, app: &App) {
     let session_mins = session_secs / 60.0;
 
     f.render_widget(
-        Paragraph::new(format!("{} units  (≈ {:.1} min)", setup_state.duration_units, session_mins))
-            .alignment(Alignment::Center)
-            .style(if dur_selected {
-                Style::default().fg(Color::Cyan).bold()
-            } else {
-                Style::default().fg(Color::White)
-            }),
-        Rect { x: dur_inner.x, y: dur_inner.y, width: dur_inner.width, height: 1 },
+        Paragraph::new(format!(
+            "{} units  (≈ {:.1} min)",
+            setup_state.duration_units, session_mins
+        ))
+        .alignment(Alignment::Center)
+        .style(if dur_selected {
+            Style::default().fg(Color::Cyan).bold()
+        } else {
+            Style::default().fg(Color::White)
+        }),
+        Rect {
+            x: dur_inner.x,
+            y: dur_inner.y,
+            width: dur_inner.width,
+            height: 1,
+        },
     );
 
     f.render_widget(
         Paragraph::new("1 unit = 1 breathing cycle")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Rgb(110, 100, 135)).dim()),
-        Rect { x: dur_inner.x, y: dur_inner.y + 1, width: dur_inner.width, height: 1 },
+        Rect {
+            x: dur_inner.x,
+            y: dur_inner.y + 1,
+            width: dur_inner.width,
+            height: 1,
+        },
     );
 
     // Speed card
-    let speed_border = if speed_selected { Color::Rgb(255, 185, 80) } else { Color::Rgb(70, 60, 100) };
-    let speed_rect = Rect { x: right_x, y: card_y, width: right_w, height: card_h };
+    let speed_border = if speed_selected {
+        Color::Rgb(255, 185, 80)
+    } else {
+        Color::Rgb(70, 60, 100)
+    };
+    let speed_rect = Rect {
+        x: right_x,
+        y: card_y,
+        width: right_w,
+        height: card_h,
+    };
     f.render_widget(
         Block::default()
             .title(" Breathing Speed ")
-            .title_style(Style::default().fg(if speed_selected { Color::Rgb(255, 185, 80) } else { Color::Rgb(130, 120, 155) }))
+            .title_style(Style::default().fg(if speed_selected {
+                Color::Rgb(255, 185, 80)
+            } else {
+                Color::Rgb(130, 120, 155)
+            }))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(speed_border)),
         speed_rect,
@@ -125,14 +176,24 @@ pub fn draw(f: &mut Frame, app: &App) {
             } else {
                 Style::default().fg(Color::White)
             }),
-        Rect { x: speed_inner.x, y: speed_inner.y, width: speed_inner.width, height: 1 },
+        Rect {
+            x: speed_inner.x,
+            y: speed_inner.y,
+            width: speed_inner.width,
+            height: 1,
+        },
     );
 
     f.render_widget(
         Paragraph::new(tempo_description(setup_state.tempo))
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Rgb(110, 100, 135)).dim()),
-        Rect { x: speed_inner.x, y: speed_inner.y + 1, width: speed_inner.width, height: 1 },
+        Rect {
+            x: speed_inner.x,
+            y: speed_inner.y + 1,
+            width: speed_inner.width,
+            height: 1,
+        },
     );
 
     // Example: show first phase adjusted duration
@@ -142,7 +203,12 @@ pub fn draw(f: &mut Frame, app: &App) {
         Paragraph::new(format!("{} = {:.1}s per phase", first.name, adj))
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Rgb(90, 80, 115)).dim()),
-        Rect { x: speed_inner.x, y: speed_inner.y + 2, width: speed_inner.width, height: 1 },
+        Rect {
+            x: speed_inner.x,
+            y: speed_inner.y + 2,
+            width: speed_inner.width,
+            height: 1,
+        },
     );
 
     // ── Phase duration bar ──────────────────────────────
@@ -152,7 +218,12 @@ pub fn draw(f: &mut Frame, app: &App) {
         Paragraph::new(format!("Phase durations at {:.1}×", setup_state.tempo))
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Rgb(130, 120, 155))),
-        Rect { x: inner.x, y: bar_y, width: inner.width, height: 1 },
+        Rect {
+            x: inner.x,
+            y: bar_y,
+            width: inner.width,
+            height: 1,
+        },
     );
 
     let total_adj: f64 = base_cycle_secs / setup_state.tempo;
@@ -164,18 +235,35 @@ pub fn draw(f: &mut Frame, app: &App) {
     for (i, phase) in pattern.phases.iter().enumerate() {
         let adj_dur = phase.duration_secs / setup_state.tempo;
         let seg_w = ((adj_dur / total_adj) * bar_w as f64).round() as usize;
-        if seg_w == 0 { continue; }
+        if seg_w == 0 {
+            continue;
+        }
         let color = phase_color(&phase.style);
         // Dim separator between segments
         if i > 0 {
-            bar_spans.push(Span::styled("│", Style::default().fg(Color::Rgb(40, 35, 55))));
+            bar_spans.push(Span::styled(
+                "│",
+                Style::default().fg(Color::Rgb(40, 35, 55)),
+            ));
         }
-        let seg_w_adj = if i > 0 { seg_w.saturating_sub(1) } else { seg_w };
-        bar_spans.push(Span::styled("█".repeat(seg_w_adj), Style::default().fg(color)));
+        let seg_w_adj = if i > 0 {
+            seg_w.saturating_sub(1)
+        } else {
+            seg_w
+        };
+        bar_spans.push(Span::styled(
+            "█".repeat(seg_w_adj),
+            Style::default().fg(color),
+        ));
     }
     f.render_widget(
         Paragraph::new(vec![Line::from(bar_spans)]),
-        Rect { x: bar_x, y: bar_y + 1, width: bar_w as u16, height: 1 },
+        Rect {
+            x: bar_x,
+            y: bar_y + 1,
+            width: bar_w as u16,
+            height: 1,
+        },
     );
 
     // Legend: ■ Inhale 4.0s  ■ Hold 7.0s  ■ Exhale 8.0s
@@ -194,7 +282,12 @@ pub fn draw(f: &mut Frame, app: &App) {
     }
     f.render_widget(
         Paragraph::new(vec![Line::from(legend_spans)]).alignment(Alignment::Center),
-        Rect { x: inner.x, y: bar_y + 2, width: inner.width, height: 1 },
+        Rect {
+            x: inner.x,
+            y: bar_y + 2,
+            width: inner.width,
+            height: 1,
+        },
     );
 
     // ── Pattern info + waveform in empty space ──────────
@@ -208,14 +301,24 @@ pub fn draw(f: &mut Frame, app: &App) {
             Paragraph::new(desc)
                 .alignment(Alignment::Center)
                 .style(Style::default().fg(Color::Rgb(160, 150, 185))),
-            Rect { x: inner.x, y: info_y, width: inner.width, height: 1 },
+            Rect {
+                x: inner.x,
+                y: info_y,
+                width: inner.width,
+                height: 1,
+            },
         );
         if available >= 4 {
             f.render_widget(
                 Paragraph::new(format!("Best for: {}", best_for))
                     .alignment(Alignment::Center)
                     .style(Style::default().fg(Color::Rgb(110, 100, 135)).dim()),
-                Rect { x: inner.x, y: info_y + 1, width: inner.width, height: 1 },
+                Rect {
+                    x: inner.x,
+                    y: info_y + 1,
+                    width: inner.width,
+                    height: 1,
+                },
             );
         }
 
@@ -226,7 +329,12 @@ pub fn draw(f: &mut Frame, app: &App) {
             let lines = build_waveform(inner.width, pattern.phases, setup_state.tempo, wave_h);
             f.render_widget(
                 Paragraph::new(lines),
-                Rect { x: inner.x, y: wave_top, width: inner.width, height: wave_h },
+                Rect {
+                    x: inner.x,
+                    y: wave_top,
+                    width: inner.width,
+                    height: wave_h,
+                },
             );
         }
     }
@@ -245,7 +353,12 @@ pub fn draw(f: &mut Frame, app: &App) {
     );
 }
 
-fn build_waveform(width: u16, phases: &[crate::engine::patterns::Phase], tempo: f64, wave_h: u16) -> Vec<Line<'static>> {
+fn build_waveform(
+    width: u16,
+    phases: &[crate::engine::patterns::Phase],
+    tempo: f64,
+    wave_h: u16,
+) -> Vec<Line<'static>> {
     let cols = width as usize;
     let h = wave_h as usize;
     let total_adj: f64 = phases.iter().map(|p| p.duration_secs / tempo).sum();
@@ -258,7 +371,9 @@ fn build_waveform(width: u16, phases: &[crate::engine::patterns::Phase], tempo: 
     for cycle in 0..cycles {
         for c in 0..cycle_cols {
             let col = cycle * cycle_cols + c;
-            if col >= cols { break; }
+            if col >= cols {
+                break;
+            }
             let t = (c as f64 / cycle_cols as f64) * total_adj;
             let mut elapsed = 0.0f64;
             for phase in phases.iter() {
@@ -266,9 +381,9 @@ fn build_waveform(width: u16, phases: &[crate::engine::patterns::Phase], tempo: 
                 if t < elapsed + dur || elapsed + dur >= total_adj {
                     let p = ((t - elapsed) / dur).clamp(0.0, 1.0);
                     let h_frac = match phase.style {
-                        PhaseStyle::Rising  => p,
+                        PhaseStyle::Rising => p,
                         PhaseStyle::Falling => 1.0 - p,
-                        PhaseStyle::Steady  => 1.0,
+                        PhaseStyle::Steady => 1.0,
                     };
                     let color = phase_color(&phase.style);
                     col_data[col] = ((h_frac * h as f64) as usize, color);
@@ -289,7 +404,11 @@ fn build_waveform(width: u16, phases: &[crate::engine::patterns::Phase], tempo: 
 
         for col in 0..cols {
             let (cell_h, color) = col_data[col];
-            let ch = if rows_from_bottom < cell_h { '█' } else { ' ' };
+            let ch = if rows_from_bottom < cell_h {
+                '█'
+            } else {
+                ' '
+            };
             let cur_color = if ch == '█' { color } else { Color::Reset };
 
             if cur_color == run_color {
@@ -331,18 +450,26 @@ fn pattern_info(name: &str) -> (&'static str, &'static str) {
 
 fn phase_color(style: &PhaseStyle) -> Color {
     match style {
-        PhaseStyle::Rising  => Color::Rgb(0, 200, 220),
-        PhaseStyle::Steady  => Color::Rgb(220, 190, 0),
+        PhaseStyle::Rising => Color::Rgb(0, 200, 220),
+        PhaseStyle::Steady => Color::Rgb(220, 190, 0),
         PhaseStyle::Falling => Color::Rgb(0, 190, 100),
     }
 }
 
 fn tempo_description(tempo: f64) -> &'static str {
-    if tempo >= 1.85      { "very fast — phases nearly halved" }
-    else if tempo >= 1.4  { "fast" }
-    else if tempo >= 1.15 { "slightly fast" }
-    else if tempo >= 0.85 { "normal pace" }
-    else if tempo >= 0.6  { "slightly slow" }
-    else if tempo >= 0.4  { "slow" }
-    else                  { "very slow — phases nearly doubled" }
+    if tempo >= 1.85 {
+        "very fast — phases nearly halved"
+    } else if tempo >= 1.4 {
+        "fast"
+    } else if tempo >= 1.15 {
+        "slightly fast"
+    } else if tempo >= 0.85 {
+        "normal pace"
+    } else if tempo >= 0.6 {
+        "slightly slow"
+    } else if tempo >= 0.4 {
+        "slow"
+    } else {
+        "very slow — phases nearly doubled"
+    }
 }

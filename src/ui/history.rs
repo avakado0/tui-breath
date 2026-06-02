@@ -1,5 +1,5 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Paragraph, Table, Row, Cell};
+use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 
 use crate::app::{App, AppState};
 
@@ -29,15 +29,14 @@ pub fn draw(f: &mut Frame, app: &App) {
             .style(Style::default().dim());
         f.render_widget(empty_msg, inner);
     } else {
-        // Table header
         let header = Row::new(vec![
             Cell::from("Date & Time").style(Style::default().bold()),
             Cell::from("Pattern").style(Style::default().bold()),
             Cell::from("Duration").style(Style::default().bold()),
+            Cell::from("Hold").style(Style::default().bold()),
             Cell::from("Completion").style(Style::default().bold()),
         ]);
 
-        // Table rows
         let rows: Vec<Row> = history_state
             .sessions
             .iter()
@@ -53,11 +52,16 @@ pub fn draw(f: &mut Frame, app: &App) {
                 let duration_secs = entry.duration_target;
                 let mins = duration_secs / 60;
                 let secs = duration_secs % 60;
+                let hold_text = entry
+                    .best_breath_hold_seconds
+                    .map(|secs| format!("{secs:.1}s"))
+                    .unwrap_or_else(|| "--".to_string());
 
                 Row::new(vec![
                     Cell::from(date_str),
                     Cell::from(entry.pattern_id.clone()),
                     Cell::from(format!("{}:{:02}", mins, secs)),
+                    Cell::from(hold_text),
                     Cell::from(format!("{:.0}%", entry.completion_pct)),
                 ])
                 .style(style)
@@ -65,9 +69,10 @@ pub fn draw(f: &mut Frame, app: &App) {
             .collect();
 
         let widths = [
-            Constraint::Percentage(34),
-            Constraint::Percentage(28),
-            Constraint::Percentage(18),
+            Constraint::Percentage(30),
+            Constraint::Percentage(22),
+            Constraint::Percentage(14),
+            Constraint::Percentage(14),
             Constraint::Percentage(20),
         ];
         let table = Table::new(rows, &widths)
@@ -77,7 +82,6 @@ pub fn draw(f: &mut Frame, app: &App) {
         f.render_widget(table, inner);
     }
 
-    // Footer
     let footer = Paragraph::new("[k/↑↓/j] Navigate  [Esc] Back")
         .alignment(Alignment::Center)
         .style(Style::default().dim());

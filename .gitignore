@@ -32,4 +32,5 @@ _plans/
 #creds
 
 .env
-documents/logos/
+documents/
+documents/WEB_VERSION_IDEA.md

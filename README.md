@@ -2,6 +2,8 @@
 
 A terminal-based breathing guide built in Rust. Guides you through breathing exercises with an animated glowing orb, smooth color transitions, and automatic session tracking.
 
+> **Web port:** [breath4.life](https://breath4.life) — same engine, pixel-art / phosphor-CRT aesthetic in the browser. Source: [breath4life-web](https://github.com/avakado0/breath4life-web).
+
 ## Installation
 
 ```bash
@@ -41,16 +43,20 @@ cargo build --release
 - **4-7-8**: 4s inhale, 7s hold, 8s exhale
 - **Box Breathing**: 4s each — inhale, hold, exhale, hold
 - **Diaphragmatic**: 4s inhale, 6s exhale
+- **Breath of Fire**: rapid 0.5s inhale, 0.5s exhale
+- **Bhastrika**: forceful 1s inhale, 1s exhale
+- **Stimulating Breath**: brisk 0.4s inhale, 0.4s exhale
 
 **Customization**
 - Session duration: 1–100 breathing cycles (1 unit = 1 complete cycle, shown in minutes)
 - Breathing speed: 0.5×–2.0× (scales all phase durations)
 
-- Audio beep on phase transitions (toggle with `b`)
+- Audio beep on phase transitions via terminal bell (toggle with `b`, off by default)
 
 **Session Tracking**
 - Metrics: cycles, pauses, completion %, breathing rate
 - Persistent JSON storage at `~/.local/share/tui_breath/`
+- Auto-saves completed sessions
 - Browsable history
 
 ## Quick Start
@@ -66,12 +72,16 @@ Minimum terminal size: **60×24**.
 | Menu | `h` | History |
 | Setup | `Tab` | Switch field (Duration / Breathing Speed) |
 | Setup | `↑/↓` or `+/-` | Adjust value |
+| Setup | `Esc` | Back to menu |
 | Setup | `Enter` | Start session |
 | Session | `p` / `Space` | Pause / Resume |
 | Session | `e` / `Esc` | End early |
-| Results | `s` | Save session |
+| Results | `s` | Save again, then return to menu |
+| Results | `Enter` / `Esc` | Return to menu |
+| History | `j/k` `↑/↓` | Navigate saved sessions |
+| History | `Esc` | Back to menu |
 | Any | `b` | Toggle beep |
-| Any | `q` | Quit |
+| Any | `q` / `Ctrl-C` | Quit |
 
 ## Architecture
 
@@ -80,13 +90,18 @@ src/
 ├── main.rs              # 30 FPS event loop, SessionAnimator::tick()
 ├── app.rs               # State machine (Menu→Setup→Session→Results→History)
 ├── animator.rs          # SessionAnimator — animated color/label/pulse fields
+├── audio.rs             # Terminal bell beeper for phase transitions
 ├── engine/
 │   ├── breathing.rs     # BreathingEngine (Copy) — phase timing, progress
-│   ├── patterns.rs      # Pattern definitions, PhaseStyle (Rising/Steady/Falling)
+│   ├── patterns.rs      # Six pattern definitions, channels, visual fill rules
 │   └── session.rs       # SessionManager — event log, metrics
 ├── storage/             # JSON persistence
 └── ui/
-    └── session.rs       # Glowing circle renderer, three-zone background
+    ├── menu.rs          # Pattern picker
+    ├── setup.rs         # Duration / tempo cards and phase bar
+    ├── session.rs       # Glowing circle renderer, three-zone background
+    ├── results.rs       # Completion metrics and summary
+    └── history.rs       # Saved session browser
 ```
 
 **Animation pipeline:**

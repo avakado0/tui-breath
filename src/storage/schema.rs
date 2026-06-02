@@ -10,10 +10,12 @@ pub struct SessionRecord {
     #[serde(rename = "type")]
     pub session_type: String,
     pub parameters: SessionParameters,
+    #[serde(default)]
+    pub breath_hold: Option<BreathHoldData>,
     pub history: Vec<HistoryEvent>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum SessionStatus {
     Completed,
@@ -23,6 +25,8 @@ pub enum SessionStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionParameters {
     pub duration_target: u32,
+    #[serde(default)]
+    pub actual_duration_secs: f64,
     pub settings: SessionSettings,
 }
 
@@ -44,6 +48,23 @@ pub struct PhaseParameters {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BreathHoldData {
+    #[serde(default)]
+    pub best_seconds: Option<f64>,
+    #[serde(default)]
+    pub attempt_count: u32,
+    #[serde(default)]
+    pub attempts: Vec<BreathHoldAttemptRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BreathHoldAttemptRecord {
+    pub started_at: DateTime<Utc>,
+    pub ended_at: DateTime<Utc>,
+    pub duration_secs: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryEvent {
     pub timestamp: DateTime<Utc>,
     pub event: String,
@@ -59,4 +80,8 @@ pub struct IndexEntry {
     pub duration_target: u32,
     pub cycles_completed: u32,
     pub completion_pct: f64,
+    #[serde(default)]
+    pub best_breath_hold_seconds: Option<f64>,
+    #[serde(default)]
+    pub breath_hold_attempt_count: u32,
 }

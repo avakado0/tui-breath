@@ -1,8 +1,9 @@
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::audio::Beeper;
-use crate::engine::SessionManager;
+use crate::engine::{BreathHoldRuntime, SessionManager};
 use crate::storage::Store;
 
 #[derive(Debug, Clone)]
@@ -37,6 +38,96 @@ pub enum SetupField {
 #[derive(Debug, Clone)]
 pub struct SessionState {
     pub manager: SessionManager,
+    pub mode: SessionMode,
+}
+
+#[derive(Debug, Clone)]
+pub enum SessionMode {
+    Breathing,
+    Holding(BreathHoldRuntime),
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct SessionTickResult {
+    pub phase_changed: bool,
+    pub completed: bool,
+}
+
+impl SessionState {
+    pub fn new(manager: SessionManager) -> Self {
+        Self {
+            manager,
+            mode: SessionMode::Breathing,
+        }
+    }
+
+    pub fn is_paused(&self) -> bool {
+        matches!(&self.mode, SessionMode::Breathing) && self.manager.engine.is_paused
+    }
+
+    pub fn start_hold(&mut self, now: DateTime<Utc>) -> bool {
+        if !matches!(self.mode, SessionMode::Breathing) || self.manager.engine.is_paused {
+            return false;
+        }
+
+        self.manager.start_hold(now);
+        self.mode = SessionMode::Holding(BreathHoldRuntime::new(now));
+        true
+    }
+
+    pub fn finish_hold(&mut self, now: DateTime<Utc>) -> bool {
+        let mode = std::mem::replace(&mut self.mode, SessionMode::Breathing);
+        if let SessionMode::Holding(runtime) = mode {
+            self.manager.finish_hold(runtime.finish(now));
+            true
+        } else {
+            self.mode = mode;
+            false
+        }
+    }
+
+    pub fn toggle_active_pause(&mut self) {
+        if matches!(self.mode, SessionMode::Breathing) {
+            self.manager.toggle_pause();
+        }
+    }
+
+    pub fn tick(&mut self, delta_secs: f64) -> SessionTickResult {
+        match &mut self.mode {
+            SessionMode::Breathing => {
+                let current_phase_idx = self.manager.engine.current_phase_idx;
+                self.manager.engine.tick(delta_secs);
+
+                SessionTickResult {
+                    phase_changed: current_phase_idx != self.manager.engine.current_phase_idx,
+                    completed: self.manager.engine.is_complete(),
+                }
+            }
+            SessionMode::Holding(runtime) => {
+                runtime.tick(delta_secs);
+                SessionTickResult::default()
+            }
+        }
+    }
+
+    pub fn finalize_active_hold(&mut self, now: DateTime<Utc>) {
+        let mode = std::mem::replace(&mut self.mode, SessionMode::Breathing);
+        if let SessionMode::Holding(runtime) = mode {
+            self.manager.finish_hold(runtime.finish(now));
+        }
+    }
+
+    pub fn abandon(mut self, now: DateTime<Utc>) -> SessionManager {
+        self.finalize_active_hold(now);
+        self.manager.abandon();
+        self.manager
+    }
+
+    pub fn complete(mut self, now: DateTime<Utc>) -> SessionManager {
+        self.finalize_active_hold(now);
+        self.manager.complete();
+        self.manager
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -73,7 +164,6 @@ impl App {
     }
 
     pub fn on_key(&mut self, key: KeyEvent) {
-        // Global quit
         if (key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL))
             || key.code == KeyCode::Char('q')
         {
@@ -81,13 +171,11 @@ impl App {
             return;
         }
 
-        // Global beep toggle
         if key.code == KeyCode::Char('b') {
             self.beeper.toggle();
             return;
         }
 
-        // State-specific handling
         match self.state.clone() {
             AppState::Menu(_) => self.handle_menu_key(key),
             AppState::Setup(_) => self.handle_setup_key(key),
@@ -105,7 +193,8 @@ impl App {
 
             match key.code {
                 KeyCode::Char('j') | KeyCode::Down => {
-                    menu_state.selected_pattern_idx = (menu_state.selected_pattern_idx + 1) % PATTERNS.len();
+                    menu_state.selected_pattern_idx =
+                        (menu_state.selected_pattern_idx + 1) % PATTERNS.len();
                 }
                 KeyCode::Char('k') | KeyCode::Up => {
                     menu_state.selected_pattern_idx = if menu_state.selected_pattern_idx == 0 {
@@ -151,7 +240,9 @@ impl App {
                 }
                 KeyCode::Char('+') | KeyCode::Up => {
                     match setup_state.selected_field {
-                        SetupField::Duration => setup_state.duration_units = (setup_state.duration_units + 1).min(100),
+                        SetupField::Duration => {
+                            setup_state.duration_units = (setup_state.duration_units + 1).min(100)
+                        }
                         SetupField::Tempo => setup_state.tempo = (setup_state.tempo + 0.1).min(2.0),
                     }
                     self.state = AppState::Setup(setup_state);
@@ -159,7 +250,8 @@ impl App {
                 KeyCode::Char('-') | KeyCode::Down => {
                     match setup_state.selected_field {
                         SetupField::Duration => {
-                            setup_state.duration_units = setup_state.duration_units.saturating_sub(1).max(1)
+                            setup_state.duration_units =
+                                setup_state.duration_units.saturating_sub(1).max(1)
                         }
                         SetupField::Tempo => setup_state.tempo = (setup_state.tempo - 0.1).max(0.5),
                     }
@@ -168,14 +260,16 @@ impl App {
                 KeyCode::Enter | KeyCode::Char(' ') => {
                     let pattern = &crate::engine::PATTERNS[setup_state.pattern_idx];
                     let base_cycle_secs: f64 = pattern.phases.iter().map(|p| p.duration_secs).sum();
-                    let duration_secs = setup_state.duration_units as f64 * base_cycle_secs / setup_state.tempo;
+                    let duration_secs =
+                        setup_state.duration_units as f64 * base_cycle_secs / setup_state.tempo;
                     let manager = SessionManager::new(pattern, duration_secs, setup_state.tempo);
                     let first_phase = manager.engine.current_phase();
-                    self.session_animator = Some(
-                        crate::animator::SessionAnimator::for_phase(&first_phase.style, first_phase.name)
-                    );
+                    self.session_animator = Some(crate::animator::SessionAnimator::for_phase(
+                        &first_phase.style,
+                        first_phase.name,
+                    ));
                     self.previous_phase_idx = manager.engine.current_phase_idx;
-                    self.state = AppState::Session(SessionState { manager });
+                    self.state = AppState::Session(SessionState::new(manager));
                 }
                 KeyCode::Esc => {
                     self.state = AppState::Menu(MenuState {
@@ -192,12 +286,33 @@ impl App {
             let mut session = session_state.clone();
             match key.code {
                 KeyCode::Char('p') | KeyCode::Char(' ') => {
-                    session.manager.toggle_pause();
+                    session.toggle_active_pause();
                     self.state = AppState::Session(session);
                 }
+                KeyCode::Char('h') => {
+                    let changed = match session.mode {
+                        SessionMode::Breathing => {
+                            let started = session.start_hold(Utc::now());
+                            if started {
+                                self.set_hold_animator();
+                            }
+                            started
+                        }
+                        SessionMode::Holding(_) => {
+                            let stopped = session.finish_hold(Utc::now());
+                            if stopped {
+                                let phase = session.manager.engine.current_phase();
+                                self.set_phase_animator(&phase.style, phase.name);
+                            }
+                            stopped
+                        }
+                    };
+                    if changed {
+                        self.state = AppState::Session(session);
+                    }
+                }
                 KeyCode::Char('e') | KeyCode::Esc => {
-                    let mut manager = session.manager;
-                    manager.abandon();
+                    let manager = session.abandon(Utc::now());
                     self.session_animator = None;
                     self.state = AppState::Results(ResultsState { manager });
                 }
@@ -252,39 +367,197 @@ impl App {
     }
 
     pub fn on_tick(&mut self, delta_secs: f64) {
+        let mut phase_update = None;
+        let mut completed_manager = None;
+
         if let AppState::Session(ref mut session_state) = self.state {
-            let current_phase_idx = session_state.manager.engine.current_phase_idx;
+            let tick_result = session_state.tick(delta_secs);
 
-            session_state.manager.engine.tick(delta_secs);
-
-            let new_phase_idx = session_state.manager.engine.current_phase_idx;
-            if current_phase_idx != new_phase_idx {
-                self.beeper.beep();
+            if tick_result.phase_changed {
                 let phase = session_state.manager.engine.current_phase();
-                let style = phase.style.clone();
-                if let Some(anim) = self.session_animator.as_mut() {
-                    let (r, g, b) = crate::animator::phase_color(&style);
-                    anim.color_r.set(r);
-                    anim.color_g.set(g);
-                    anim.color_b.set(b);
-                    anim.phase_label.set(phase.name.to_string());
-                    if matches!(style, crate::engine::patterns::PhaseStyle::Steady) {
-                        anim.hold_pulse.set(0.65);
-                    }
-                }
+                phase_update = Some((
+                    phase.style,
+                    phase.name,
+                    session_state.manager.engine.current_phase_idx,
+                ));
             }
 
-            if session_state.manager.engine.is_complete() {
-                let mut manager = session_state.manager.clone();
-                manager.complete();
-                let _ = self.storage.save_session(&manager);
-                self.session_animator = None;
-                self.state = AppState::Results(ResultsState { manager });
+            if tick_result.completed {
+                completed_manager = Some(session_state.clone().complete(Utc::now()));
             }
         }
+
+        if let Some((style, label, phase_idx)) = phase_update {
+            self.beeper.beep();
+            self.set_phase_animator(&style, label);
+            self.previous_phase_idx = phase_idx;
+        }
+
+        if let Some(manager) = completed_manager {
+            let _ = self.storage.save_session(&manager);
+            self.session_animator = None;
+            self.state = AppState::Results(ResultsState { manager });
+        }
+    }
+
+    pub fn session_is_paused(&self) -> bool {
+        matches!(&self.state, AppState::Session(session) if session.is_paused())
     }
 
     pub fn is_quitting(&self) -> bool {
         matches!(self.state, AppState::Quitting)
+    }
+
+    fn set_phase_animator(&mut self, style: &crate::engine::patterns::PhaseStyle, label: &str) {
+        if let Some(anim) = self.session_animator.as_mut() {
+            let (r, g, b) = crate::animator::phase_color(style);
+            anim.color_r.set(r);
+            anim.color_g.set(g);
+            anim.color_b.set(b);
+            anim.phase_label.set(label.to_string());
+            if matches!(style, crate::engine::patterns::PhaseStyle::Steady) {
+                anim.hold_pulse.set(0.65);
+            }
+        } else {
+            self.session_animator = Some(crate::animator::SessionAnimator::for_phase(style, label));
+        }
+    }
+
+    fn set_hold_animator(&mut self) {
+        const HOLD_R: f64 = 255.0;
+        const HOLD_G: f64 = 120.0;
+        const HOLD_B: f64 = 140.0;
+
+        if let Some(anim) = self.session_animator.as_mut() {
+            anim.color_r.set(HOLD_R);
+            anim.color_g.set(HOLD_G);
+            anim.color_b.set(HOLD_B);
+            anim.phase_label.set("Breath Hold".to_string());
+            anim.hold_pulse.set(0.55);
+        } else {
+            let mut anim = crate::animator::SessionAnimator::for_phase(
+                &crate::engine::patterns::PhaseStyle::Steady,
+                "Breath Hold",
+            );
+            anim.color_r.set(HOLD_R);
+            anim.color_g.set(HOLD_G);
+            anim.color_b.set(HOLD_B);
+            anim.hold_pulse.set(0.55);
+            self.session_animator = Some(anim);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::animator::SessionAnimator;
+    use crate::audio::Beeper;
+    use crate::engine::PATTERNS;
+    use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers};
+    use uuid::Uuid;
+
+    fn key(code: KeyCode) -> KeyEvent {
+        KeyEvent {
+            code,
+            modifiers: KeyModifiers::empty(),
+            kind: KeyEventKind::Press,
+            state: KeyEventState::empty(),
+        }
+    }
+
+    fn test_app() -> App {
+        let temp_dir = std::env::temp_dir().join(format!("tui_breath_test_{}", Uuid::new_v4()));
+        let store = Store::new_in(temp_dir).unwrap();
+        let manager = SessionManager::new(&PATTERNS[1], 60.0, 1.0);
+        let first_phase = manager.engine.current_phase();
+
+        App {
+            state: AppState::Session(SessionState::new(manager)),
+            storage: store,
+            beeper: Beeper::new(),
+            previous_phase_idx: 0,
+            session_animator: Some(SessionAnimator::for_phase(
+                &first_phase.style,
+                first_phase.name,
+            )),
+        }
+    }
+
+    #[test]
+    fn breath_hold_freezes_breathing_and_resumes_same_progress() {
+        let mut app = test_app();
+        app.on_tick(1.0);
+
+        let (phase_idx, phase_elapsed, total_elapsed) = match &app.state {
+            AppState::Session(session) => (
+                session.manager.engine.current_phase_idx,
+                session.manager.engine.phase_elapsed_secs,
+                session.manager.engine.total_elapsed_secs,
+            ),
+            _ => panic!("expected session state"),
+        };
+
+        app.on_key(key(KeyCode::Char('h')));
+        app.on_tick(2.0);
+
+        match &app.state {
+            AppState::Session(session) => {
+                assert!(matches!(session.mode, SessionMode::Holding(_)));
+                assert_eq!(session.manager.engine.current_phase_idx, phase_idx);
+                assert!((session.manager.engine.phase_elapsed_secs - phase_elapsed).abs() < 0.001);
+                assert!((session.manager.engine.total_elapsed_secs - total_elapsed).abs() < 0.001);
+            }
+            _ => panic!("expected session state"),
+        }
+
+        app.on_key(key(KeyCode::Char('h')));
+        app.on_tick(1.0);
+
+        match &app.state {
+            AppState::Session(session) => {
+                assert!(matches!(session.mode, SessionMode::Breathing));
+                assert!(session.manager.engine.total_elapsed_secs > total_elapsed);
+            }
+            _ => panic!("expected session state"),
+        }
+    }
+
+    #[test]
+    fn pause_key_is_ignored_during_hold_mode() {
+        let mut app = test_app();
+        app.on_key(key(KeyCode::Char('h')));
+        app.on_key(key(KeyCode::Char('p')));
+        app.on_tick(1.5);
+
+        match &app.state {
+            AppState::Session(session) => {
+                assert_eq!(session.manager.engine.pause_count, 0);
+                assert!(
+                    matches!(&session.mode, SessionMode::Holding(runtime) if runtime.elapsed_secs >= 1.5)
+                );
+            }
+            _ => panic!("expected session state"),
+        }
+    }
+
+    #[test]
+    fn ending_session_from_hold_captures_attempt() {
+        let mut app = test_app();
+        app.on_key(key(KeyCode::Char('h')));
+        app.on_tick(1.4);
+        app.on_key(key(KeyCode::Char('e')));
+
+        match &app.state {
+            AppState::Results(results) => {
+                assert_eq!(results.manager.hold_attempt_count(), 1);
+                assert_eq!(
+                    results.manager.session_status(),
+                    Some(crate::engine::session::SessionOutcome::Abandoned)
+                );
+                assert!(results.manager.best_hold_seconds().unwrap() >= 1.4);
+            }
+            _ => panic!("expected results state"),
+        }
     }
 }

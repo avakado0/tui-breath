@@ -1,7 +1,8 @@
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Gauge, Paragraph, Table, Row, Cell};
+use ratatui::widgets::{Block, Borders, Cell, Gauge, Paragraph, Row, Table};
 
 use crate::app::{App, AppState};
+use crate::engine::session::SessionOutcome;
 
 pub fn draw(f: &mut Frame, app: &App) {
     let AppState::Results(results_state) = &app.state else {
@@ -12,8 +13,13 @@ pub fn draw(f: &mut Frame, app: &App) {
     let pattern = engine.pattern;
     let area = f.size();
 
+    let title = match results_state.manager.session_status() {
+        Some(SessionOutcome::Completed) => "Session Complete",
+        _ => "Session Ended",
+    };
+
     let title_block = Block::default()
-        .title("Session Complete")
+        .title(title)
         .title_alignment(Alignment::Center)
         .borders(Borders::ALL);
 
@@ -26,7 +32,6 @@ pub fn draw(f: &mut Frame, app: &App) {
         height: area.height.saturating_sub(5),
     };
 
-    // Stats table
     let elapsed_secs = engine.total_elapsed_secs as u32;
     let elapsed_mins = elapsed_secs / 60;
     let elapsed_secs_remainder = elapsed_secs % 60;
@@ -34,6 +39,12 @@ pub fn draw(f: &mut Frame, app: &App) {
     let target_secs = engine.duration_target_secs as u32;
     let target_mins = target_secs / 60;
     let target_secs_remainder = target_secs % 60;
+
+    let best_hold = results_state
+        .manager
+        .best_hold_seconds()
+        .map(|secs| format!("{secs:.1}s"))
+        .unwrap_or_else(|| "--".to_string());
 
     let rows = vec![
         Row::new(vec![
@@ -50,28 +61,42 @@ pub fn draw(f: &mut Frame, app: &App) {
         ]),
         Row::new(vec![
             Cell::from("Cycles Completed"),
-            Cell::from(format!("{}", engine.cycle_count))
-                .style(Style::default().fg(Color::Yellow)),
+            Cell::from(format!("{}", engine.cycle_count)).style(Style::default().fg(Color::Yellow)),
         ]),
         Row::new(vec![
             Cell::from("Pauses"),
             Cell::from(format!("{}", engine.pause_count))
                 .style(Style::default().fg(Color::Magenta)),
         ]),
+        Row::new(vec![
+            Cell::from("Best Hold"),
+            Cell::from(best_hold).style(Style::default().fg(Color::LightRed)),
+        ]),
+        Row::new(vec![
+            Cell::from("Hold Attempts"),
+            Cell::from(format!("{}", results_state.manager.hold_attempt_count()))
+                .style(Style::default().fg(Color::LightBlue)),
+        ]),
     ];
 
-    let table = Table::new(rows, &[Constraint::Percentage(40), Constraint::Percentage(60)])
-        .block(Block::default().borders(Borders::ALL).title("Session Metrics"));
+    let table = Table::new(
+        rows,
+        &[Constraint::Percentage(40), Constraint::Percentage(60)],
+    )
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Session Metrics"),
+    );
 
     let table_area = Rect {
         x: inner.x,
         y: inner.y,
         width: inner.width,
-        height: 8,
+        height: 10,
     };
     f.render_widget(table, table_area);
 
-    // Progress bar
     let completion = engine.completion_percent() as u16;
     let gauge = Gauge::default()
         .block(Block::default().title("Completion"))
@@ -80,14 +105,13 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     let gauge_area = Rect {
         x: inner.x,
-        y: inner.y + 9,
+        y: inner.y + 11,
         width: inner.width,
         height: 2,
     };
     f.render_widget(gauge, gauge_area);
 
-    // Footer
-    let footer = Paragraph::new("[s] Save & Continue  [Enter] Main Menu  [Esc] Quit")
+    let footer = Paragraph::new("[s] Save Again  [Enter] Main Menu  [Esc] Main Menu")
         .alignment(Alignment::Center)
         .style(Style::default().dim());
 

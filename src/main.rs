@@ -58,20 +58,17 @@ async fn run_app() -> Result<()> {
     loop {
         terminal.draw(|f| ui::draw(f, &app))?;
 
-        // Non-blocking key event check
         if event::poll(Duration::from_millis(0))? {
             if let event::Event::Key(key) = event::read()? {
                 app.on_key(key);
             }
         }
 
-        // Tick interval
         interval.tick().await;
         let delta = last_tick.elapsed().as_secs_f64();
         last_tick = Instant::now();
 
-        let engine_paused = matches!(&app.state, app::AppState::Session(s) if s.manager.engine.is_paused);
-        if !engine_paused {
+        if !app.session_is_paused() {
             if let Some(anim) = app.session_animator.as_mut() {
                 anim.tick(delta);
             }

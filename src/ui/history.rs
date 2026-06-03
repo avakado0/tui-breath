@@ -56,11 +56,7 @@ pub fn draw(f: &mut Frame, app: &App) {
                     .best_breath_hold_seconds
                     .map(|secs| {
                         let count = entry.breath_hold_attempt_count;
-                        if count > 0 {
-                            format!("{secs:.1}s ×{count}")
-                        } else {
-                            format!("{secs:.1}s")
-                        }
+                        format!("best {secs:.1}s / {count}")
                     })
                     .unwrap_or_else(|| "--".to_string());
 

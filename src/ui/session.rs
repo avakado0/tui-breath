@@ -43,23 +43,28 @@ pub fn draw(f: &mut Frame, app: &App) {
     } else {
         "🔇"
     };
+    let workout_hint = if session_state.workout_mode {
+        "  [m] Movements"
+    } else {
+        ""
+    };
     let footer = match &session_state.mode {
         SessionMode::Breathing if engine.is_paused => {
             format!(
-                "[p] Resume  [h] Hold  [e] End  [b] {} Beep  [q] Quit",
-                beep_status
+                "[p] Resume  [h] Hold  [e] End  [b] {} Beep{}  [q] Quit",
+                beep_status, workout_hint
             )
         }
         SessionMode::Breathing => {
             format!(
-                "[p] Pause  [h] Hold  [e] End  [b] {} Beep  [q] Quit",
-                beep_status
+                "[p] Pause  [h] Hold  [e] End  [b] {} Beep{}  [q] Quit",
+                beep_status, workout_hint
             )
         }
         SessionMode::Holding(_) => {
             format!(
-                "[h] End Hold  [e] End Session  [b] {} Beep  [q] Quit",
-                beep_status
+                "[h] End Hold  [e] End Session  [b] {} Beep{}  [q] Quit",
+                beep_status, workout_hint
             )
         }
     };
@@ -314,29 +319,39 @@ fn render_hold_art(f: &mut Frame, area: Rect, hold_color: Color, bg_color: Color
     f.render_widget(paragraph, area);
 }
 
+pub fn render_breathing_circle_for(
+    f: &mut Frame,
+    area: Rect,
+    engine: &crate::engine::breathing::BreathingEngine,
+    animator: Option<&crate::animator::SessionAnimator>,
+) {
+    let phase = engine.current_phase();
+    let progress = crate::animator::cubic_in_out(engine.phase_progress());
+    let (cr, cg, cb) = if let Some(anim) = animator {
+        let (r, g, b) = (*anim.color_r, *anim.color_g, *anim.color_b);
+        if matches!(phase.style, PhaseStyle::Steady) {
+            let pulse = *anim.hold_pulse;
+            ((r * pulse) as u8, (g * pulse) as u8, (b * pulse) as u8)
+        } else {
+            (r as u8, g as u8, b as u8)
+        }
+    } else {
+        match phase.style {
+            PhaseStyle::Rising => (0, 255, 255),
+            PhaseStyle::Steady => (255, 230, 0),
+            PhaseStyle::Falling => (0, 220, 100),
+        }
+    };
+    render_circle_with_color(f, area, engine, cr, cg, cb, progress);
+}
+
 fn render_breathing_circle(f: &mut Frame, area: Rect, app: &App) {
     let AppState::Session(session_state) = &app.state else {
         return;
     };
     let engine = &session_state.manager.engine;
     let phase = engine.current_phase();
-
     let progress = crate::animator::cubic_in_out(engine.phase_progress());
-
-    let h = area.height as f64;
-    let w = area.width as f64;
-    let cy = h / 2.0;
-    let cx = w / 2.0;
-    let max_r = cy.min(cx / 2.0) * 0.95;
-
-    let ratio = crate::engine::patterns::fill_ratio(
-        engine.pattern.phases,
-        engine.current_phase_idx,
-        progress,
-    );
-    let base_r = ratio * max_r;
-    let glow_r = base_r + 2.0;
-
     let (cr, cg, cb) = if let Some(anim) = &app.session_animator {
         let (r, g, b) = (*anim.color_r, *anim.color_g, *anim.color_b);
         if matches!(phase.style, PhaseStyle::Steady) {
@@ -352,6 +367,31 @@ fn render_breathing_circle(f: &mut Frame, area: Rect, app: &App) {
             PhaseStyle::Falling => (0, 220, 100),
         }
     };
+    render_circle_with_color(f, area, engine, cr, cg, cb, progress);
+}
+
+pub fn render_circle_with_color(
+    f: &mut Frame,
+    area: Rect,
+    engine: &crate::engine::breathing::BreathingEngine,
+    cr: u8,
+    cg: u8,
+    cb: u8,
+    progress: f64,
+) {
+    let h = area.height as f64;
+    let w = area.width as f64;
+    let cy = h / 2.0;
+    let cx = w / 2.0;
+    let max_r = cy.min(cx / 2.0) * 0.95;
+
+    let ratio = crate::engine::patterns::fill_ratio(
+        engine.pattern.phases,
+        engine.current_phase_idx,
+        progress,
+    );
+    let base_r = ratio * max_r;
+    let glow_r = base_r + 2.0;
 
     let fill_color = Color::Rgb(cr, cg, cb);
     let edge_color = Color::Rgb(

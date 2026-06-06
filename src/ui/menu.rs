@@ -63,6 +63,30 @@ pub fn draw(f: &mut Frame, app: &App) {
     };
     f.render_widget(list, list_area);
 
+    // Workout toggle
+    let workout_label = if menu_state.workout_mode {
+        "Workout: ON "
+    } else {
+        "Workout: OFF"
+    };
+    let workout_style = if menu_state.workout_mode {
+        Style::default().fg(Color::Cyan).bold()
+    } else {
+        Style::default().dim()
+    };
+    let workout_area = Rect {
+        x: inner_area.x,
+        y: area.bottom().saturating_sub(3),
+        width: inner_area.width,
+        height: 1,
+    };
+    f.render_widget(
+        Paragraph::new(format!("[w] {}", workout_label))
+            .alignment(Alignment::Center)
+            .style(workout_style),
+        workout_area,
+    );
+
     // Footer
     let beep_status = if app.beeper.is_enabled() {
         "🔊"

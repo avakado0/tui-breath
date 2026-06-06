@@ -11,6 +11,7 @@ pub enum AppState {
     Menu(MenuState),
     Setup(SetupState),
     Session(SessionState),
+    BodyMovements(BodyMovementsState),
     Results(ResultsState),
     History(HistoryState),
     Quitting,
@@ -19,6 +20,7 @@ pub enum AppState {
 #[derive(Debug, Clone)]
 pub struct MenuState {
     pub selected_pattern_idx: usize,
+    pub workout_mode: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -27,6 +29,16 @@ pub struct SetupState {
     pub duration_units: u32,
     pub tempo: f64,
     pub selected_field: SetupField,
+    pub workout_mode: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct BodyMovementsState {
+    pub session_state: SessionState,
+    pub current_movement: usize,
+    pub current_step: usize,
+    pub step_elapsed: f64,
+    pub prev_phase_idx: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,6 +51,7 @@ pub enum SetupField {
 pub struct SessionState {
     pub manager: SessionManager,
     pub mode: SessionMode,
+    pub workout_mode: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -54,10 +67,11 @@ pub struct SessionTickResult {
 }
 
 impl SessionState {
-    pub fn new(manager: SessionManager) -> Self {
+    pub fn new(manager: SessionManager, workout_mode: bool) -> Self {
         Self {
             manager,
             mode: SessionMode::Breathing,
+            workout_mode,
         }
     }
 
@@ -155,6 +169,7 @@ impl App {
         Ok(Self {
             state: AppState::Menu(MenuState {
                 selected_pattern_idx: 0,
+                workout_mode: false,
             }),
             storage,
             beeper: Beeper::new(),
@@ -180,6 +195,7 @@ impl App {
             AppState::Menu(_) => self.handle_menu_key(key),
             AppState::Setup(_) => self.handle_setup_key(key),
             AppState::Session(_) => self.handle_session_key(key),
+            AppState::BodyMovements(_) => self.handle_body_movements_key(key),
             AppState::Results(_) => self.handle_results_key(key),
             AppState::History(_) => self.handle_history_key(key),
             AppState::Quitting => {}
@@ -203,12 +219,16 @@ impl App {
                         menu_state.selected_pattern_idx - 1
                     };
                 }
+                KeyCode::Char('w') => {
+                    menu_state.workout_mode = !menu_state.workout_mode;
+                }
                 KeyCode::Enter | KeyCode::Char(' ') => {
                     self.state = AppState::Setup(SetupState {
                         pattern_idx: menu_state.selected_pattern_idx,
                         duration_units: 30,
                         tempo: 1.0,
                         selected_field: SetupField::Duration,
+                        workout_mode: menu_state.workout_mode,
                     });
                     return;
                 }
@@ -269,11 +289,12 @@ impl App {
                         first_phase.name,
                     ));
                     self.previous_phase_idx = manager.engine.current_phase_idx;
-                    self.state = AppState::Session(SessionState::new(manager));
+                    self.state = AppState::Session(SessionState::new(manager, setup_state.workout_mode));
                 }
                 KeyCode::Esc => {
                     self.state = AppState::Menu(MenuState {
                         selected_pattern_idx: 0,
+                        workout_mode: setup_state.workout_mode,
                     });
                 }
                 _ => {}
@@ -311,10 +332,50 @@ impl App {
                         self.state = AppState::Session(session);
                     }
                 }
+                KeyCode::Char('m') if session.workout_mode => {
+                    let phase_idx = session.manager.engine.current_phase_idx;
+                    self.state = AppState::BodyMovements(BodyMovementsState {
+                        current_step: phase_idx % 3,
+                        prev_phase_idx: phase_idx,
+                        session_state: session,
+                        current_movement: 0,
+                        step_elapsed: 0.0,
+                    });
+                }
                 KeyCode::Char('e') | KeyCode::Esc => {
                     let manager = session.abandon(Utc::now());
                     self.session_animator = None;
                     self.state = AppState::Results(ResultsState { manager });
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn handle_body_movements_key(&mut self, key: KeyEvent) {
+        if let AppState::BodyMovements(bm) = &self.state {
+            let mut bm = bm.clone();
+            match key.code {
+                KeyCode::Char('1') => {
+                    bm.current_movement = 0;
+                    bm.current_step = 0;
+                    bm.step_elapsed = 0.0;
+                    self.state = AppState::BodyMovements(bm);
+                }
+                KeyCode::Char('2') => {
+                    bm.current_movement = 1;
+                    bm.current_step = 0;
+                    bm.step_elapsed = 0.0;
+                    self.state = AppState::BodyMovements(bm);
+                }
+                KeyCode::Char('3') => {
+                    bm.current_movement = 2;
+                    bm.current_step = 0;
+                    bm.step_elapsed = 0.0;
+                    self.state = AppState::BodyMovements(bm);
+                }
+                KeyCode::Char('m') | KeyCode::Esc => {
+                    self.state = AppState::Session(bm.session_state);
                 }
                 _ => {}
             }
@@ -329,11 +390,13 @@ impl App {
                 }
                 self.state = AppState::Menu(MenuState {
                     selected_pattern_idx: 0,
+                    workout_mode: false,
                 });
             }
             KeyCode::Enter | KeyCode::Esc => {
                 self.state = AppState::Menu(MenuState {
                     selected_pattern_idx: 0,
+                    workout_mode: false,
                 });
             }
             _ => {}
@@ -359,6 +422,7 @@ impl App {
                 KeyCode::Esc => {
                     self.state = AppState::Menu(MenuState {
                         selected_pattern_idx: 0,
+                        workout_mode: false,
                     });
                 }
                 _ => {}
@@ -385,6 +449,24 @@ impl App {
             if tick_result.completed {
                 completed_manager = Some(session_state.clone().complete(Utc::now()));
             }
+        }
+
+        if let AppState::BodyMovements(ref mut bm) = self.state {
+            let tick_result = bm.session_state.tick(delta_secs);
+            let current_phase_idx = bm.session_state.manager.engine.current_phase_idx;
+            if tick_result.phase_changed {
+                let phase = bm.session_state.manager.engine.current_phase();
+                phase_update = Some((
+                    phase.style,
+                    phase.name,
+                    current_phase_idx,
+                ));
+                // Advance step in sync with breath phase
+                bm.current_step = current_phase_idx % 3;
+                bm.step_elapsed = 0.0;
+                bm.prev_phase_idx = current_phase_idx;
+            }
+            bm.step_elapsed += delta_secs;
         }
 
         if let Some((style, label, phase_idx)) = phase_update {
@@ -473,7 +555,7 @@ mod tests {
         let first_phase = manager.engine.current_phase();
 
         App {
-            state: AppState::Session(SessionState::new(manager)),
+            state: AppState::Session(SessionState::new(manager, false)),
             storage: store,
             beeper: Beeper::new(),
             previous_phase_idx: 0,

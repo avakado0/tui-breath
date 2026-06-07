@@ -126,3 +126,10 @@ Each saved Session keeps breathing metrics plus optional Breath Hold attempt dat
 - `completion_pct`: Percentage of target duration completed
 - `best_breath_hold_seconds`: Best hold on record
 - `breath_hold_attempt_count`: Total hold attempts in that session
+
+## Support
+
+If tui_breath helps your practice, consider supporting on Patreon — it keeps the project going.
+
+[![Patreon](https://img.shields.io/badge/Patreon-Support-orange?logo=patreon)](https://www.patreon.com/batu)
+

@@ -131,5 +131,5 @@ Each saved Session keeps breathing metrics plus optional Breath Hold attempt dat
 
 If tui_breath helps your practice, consider supporting on Patreon — it keeps the project going.
 
-[![Patreon](https://img.shields.io/badge/Patreon-Support-orange?logo=patreon)](https://www.patreon.com/batu)
+[![Patreon](https://img.shields.io/badge/Patreon-Support-orange?logo=patreon)](https://www.patreon.com/batu) [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/avakado0)
 

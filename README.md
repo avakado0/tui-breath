@@ -127,7 +127,7 @@ Each saved Session keeps breathing metrics plus optional Breath Hold attempt dat
 - `best_breath_hold_seconds`: Best hold on record
 - `breath_hold_attempt_count`: Total hold attempts in that session
 
-## Support
+## Support the Developer
 
 If tui_breath helps your practice, consider supporting on Patreon — it keeps the project going.
 

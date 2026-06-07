@@ -58,6 +58,7 @@ pub struct SessionState {
 pub enum SessionMode {
     Breathing,
     Holding(BreathHoldRuntime),
+    DeepInhaleHold(BreathHoldRuntime),
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -117,7 +118,7 @@ impl SessionState {
                     completed: self.manager.engine.is_complete(),
                 }
             }
-            SessionMode::Holding(runtime) => {
+            SessionMode::Holding(runtime) | SessionMode::DeepInhaleHold(runtime) => {
                 runtime.tick(delta_secs);
                 SessionTickResult::default()
             }
@@ -126,8 +127,11 @@ impl SessionState {
 
     pub fn finalize_active_hold(&mut self, now: DateTime<Utc>) {
         let mode = std::mem::replace(&mut self.mode, SessionMode::Breathing);
-        if let SessionMode::Holding(runtime) = mode {
-            self.manager.finish_hold(runtime.finish(now));
+        match mode {
+            SessionMode::Holding(runtime) => {
+                self.manager.finish_hold(runtime.finish(now));
+            }
+            SessionMode::Breathing | SessionMode::DeepInhaleHold(_) => {}
         }
     }
 
@@ -327,9 +331,33 @@ impl App {
                             }
                             stopped
                         }
+                        SessionMode::DeepInhaleHold(_) => {
+                            session.mode = SessionMode::Breathing;
+                            let phase = session.manager.engine.current_phase();
+                            self.set_phase_animator(&phase.style, phase.name);
+                            true
+                        }
                     };
                     if changed {
                         self.state = AppState::Session(session);
+                    }
+                }
+                KeyCode::Char('d') => {
+                    match session.mode {
+                        SessionMode::Holding(_) => {
+                            session.finish_hold(Utc::now());
+                            session.mode =
+                                SessionMode::DeepInhaleHold(BreathHoldRuntime::new(Utc::now()));
+                            self.set_deep_inhale_animator();
+                            self.state = AppState::Session(session);
+                        }
+                        SessionMode::DeepInhaleHold(_) => {
+                            session.mode = SessionMode::Breathing;
+                            let phase = session.manager.engine.current_phase();
+                            self.set_phase_animator(&phase.style, phase.name);
+                            self.state = AppState::Session(session);
+                        }
+                        _ => {}
                     }
                 }
                 KeyCode::Char('m') if session.workout_mode => {
@@ -528,6 +556,30 @@ impl App {
             self.session_animator = Some(anim);
         }
     }
+
+    fn set_deep_inhale_animator(&mut self) {
+        const DEEP_R: f64 = 255.0;
+        const DEEP_G: f64 = 160.0;
+        const DEEP_B: f64 = 40.0;
+
+        if let Some(anim) = self.session_animator.as_mut() {
+            anim.color_r.set(DEEP_R);
+            anim.color_g.set(DEEP_G);
+            anim.color_b.set(DEEP_B);
+            anim.phase_label.set("Deep Inhale Hold".to_string());
+            anim.hold_pulse.set(0.85);
+        } else {
+            let mut anim = crate::animator::SessionAnimator::for_phase(
+                &crate::engine::patterns::PhaseStyle::Steady,
+                "Deep Inhale Hold",
+            );
+            anim.color_r.set(DEEP_R);
+            anim.color_g.set(DEEP_G);
+            anim.color_b.set(DEEP_B);
+            anim.hold_pulse.set(0.85);
+            self.session_animator = Some(anim);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -620,6 +672,52 @@ mod tests {
                 );
             }
             _ => panic!("expected session state"),
+        }
+    }
+
+    #[test]
+    fn deep_inhale_starts_from_hold_and_returns_to_breathing() {
+        let mut app = test_app();
+        app.on_key(key(KeyCode::Char('h')));
+        app.on_tick(1.0);
+        app.on_key(key(KeyCode::Char('d')));
+        app.on_tick(2.0);
+
+        match &app.state {
+            AppState::Session(session) => {
+                assert!(matches!(session.mode, SessionMode::DeepInhaleHold(_)));
+                assert!(
+                    matches!(&session.mode, SessionMode::DeepInhaleHold(rt) if rt.elapsed_secs >= 2.0)
+                );
+            }
+            _ => panic!("expected session state"),
+        }
+
+        app.on_key(key(KeyCode::Char('d')));
+
+        match &app.state {
+            AppState::Session(session) => {
+                assert!(matches!(session.mode, SessionMode::Breathing));
+            }
+            _ => panic!("expected session state"),
+        }
+    }
+
+    #[test]
+    fn deep_inhale_hold_not_recorded_as_attempt() {
+        let mut app = test_app();
+        app.on_key(key(KeyCode::Char('h')));
+        app.on_tick(1.0);
+        app.on_key(key(KeyCode::Char('d')));
+        app.on_tick(2.0);
+        app.on_key(key(KeyCode::Char('d')));
+        app.on_key(key(KeyCode::Char('e')));
+
+        match &app.state {
+            AppState::Results(results) => {
+                assert_eq!(results.manager.hold_attempt_count(), 1);
+            }
+            _ => panic!("expected results state"),
         }
     }
 

@@ -16,6 +16,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     let title = match &session_state.mode {
         SessionMode::Breathing if engine.is_paused => format!("{} [PAUSED]", pattern.display_name),
         SessionMode::Holding(_) => format!("{} [BREATH HOLD]", pattern.display_name),
+        SessionMode::DeepInhaleHold(_) => format!("{} [DEEP INHALE]", pattern.display_name),
         SessionMode::Breathing => pattern.display_name.to_string(),
     };
 
@@ -36,6 +37,9 @@ pub fn draw(f: &mut Frame, app: &App) {
     match &session_state.mode {
         SessionMode::Breathing => render_breathing_view(f, inner, app),
         SessionMode::Holding(runtime) => render_hold_view(f, inner, app, runtime.elapsed_secs),
+        SessionMode::DeepInhaleHold(runtime) => {
+            render_deep_inhale_view(f, inner, app, runtime.elapsed_secs)
+        }
     }
 
     let beep_status = if app.beeper.is_enabled() {
@@ -63,8 +67,14 @@ pub fn draw(f: &mut Frame, app: &App) {
         }
         SessionMode::Holding(_) => {
             format!(
-                "[h] End Hold  [e] End Session  [b] {} Beep{}  [q] Quit",
+                "[h] End Hold  [d] Deep Inhale  [e] End Session  [b] {} Beep{}  [q] Quit",
                 beep_status, workout_hint
+            )
+        }
+        SessionMode::DeepInhaleHold(_) => {
+            format!(
+                "[d] Release  [e] End Session  [b] {} Beep  [q] Quit",
+                beep_status
             )
         }
     };
@@ -317,6 +327,194 @@ fn render_hold_art(f: &mut Frame, area: Rect, hold_color: Color, bg_color: Color
         .alignment(Alignment::Center)
         .style(Style::default().bg(bg_color));
     f.render_widget(paragraph, area);
+}
+
+fn render_deep_inhale_view(f: &mut Frame, inner: Rect, app: &App, elapsed: f64) {
+    let color = deep_inhale_color(elapsed);
+    let dim = dim_color(color, 2);
+
+    let art_height = inner.height.saturating_sub(8).max(5);
+    let art_area = Rect {
+        x: inner.x,
+        y: inner.y,
+        width: inner.width,
+        height: art_height,
+    };
+
+    render_max_pressure_circle(f, art_area, color, elapsed);
+
+    let mins = elapsed as u32 / 60;
+    let secs = elapsed as u32 % 60;
+    let tenths = (elapsed.fract() * 10.0) as u32;
+    let counter_str = if mins > 0 {
+        format!("{mins}:{secs:02}")
+    } else {
+        format!("{secs}.{tenths}s")
+    };
+
+    let text = Text::from(vec![
+        Line::from("✦  DEEP INHALE  ✦  SQUEEZE  ✦")
+            .style(Style::default().fg(color).bold()),
+        Line::from(counter_str).style(Style::default().fg(color).bold()),
+        Line::from(""),
+        Line::from("release when ready").style(Style::default().fg(dim)),
+    ]);
+    let text_para = Paragraph::new(text).alignment(Alignment::Center);
+
+    let text_area = Rect {
+        x: inner.x,
+        y: inner.y + art_height + 1,
+        width: inner.width,
+        height: 4,
+    };
+    f.render_widget(text_para, text_area);
+
+    render_progress_stats(f, inner, app, art_height + 5);
+}
+
+fn render_max_pressure_circle(f: &mut Frame, area: Rect, color: Color, elapsed: f64) {
+    let (cr, cg, cb) = match color {
+        Color::Rgb(r, g, b) => (r, g, b),
+        _ => (255, 160, 40),
+    };
+
+    let h = area.height as f64;
+    let w = area.width as f64;
+    let cy = h / 2.0;
+    let cx = w / 2.0;
+    let max_r = cy.min(cx / 2.0) * 0.95;
+
+    let base_r = max_r;
+    let glow_r = base_r + 2.0;
+
+    let shimmer_frame = (elapsed * 6.0) as usize % 3;
+    let shimmer_edge = ["▓", "█", "▓"][shimmer_frame];
+
+    let fill_color = color;
+    let edge_color = Color::Rgb(
+        (cr as u16 * 2 / 3) as u8,
+        (cg as u16 * 2 / 3) as u8,
+        (cb as u16 * 2 / 3) as u8,
+    );
+    let glow_color = Color::Rgb(cr / 5, cg / 5, cb / 5);
+    let bg_near = Color::Rgb(cr / 9, cg / 9, cb / 9);
+    let bg_mid = Color::Rgb(cr / 16, cg / 16, cb / 16);
+    let bg_far = Color::Rgb(cr / 28, cg / 28, cb / 28);
+
+    let total_w = area.width as usize;
+    let mut lines: Vec<Line> = Vec::with_capacity(area.height as usize);
+
+    for row in 0..area.height {
+        let dy = row as f64 + 0.5 - cy;
+        let abs_dy = dy.abs();
+        let row_bg = if abs_dy < glow_r + 4.0 {
+            bg_near
+        } else if abs_dy < glow_r + 9.0 {
+            bg_mid
+        } else {
+            bg_far
+        };
+
+        if abs_dy >= glow_r + 0.5 {
+            lines.push(Line::from(Span::styled(
+                " ".repeat(total_w),
+                Style::default().bg(row_bg),
+            )));
+            continue;
+        }
+
+        let (fill_l, fill_r) = if abs_dy < base_r {
+            let half = ((base_r * base_r - dy * dy).sqrt() * 2.0).round() as usize;
+            let l = (cx as usize).saturating_sub(half / 2);
+            let r = (l + half).min(total_w);
+            (l, r)
+        } else {
+            (cx as usize, cx as usize)
+        };
+
+        let (glow_l, glow_r_col) = if abs_dy < glow_r {
+            let half = ((glow_r * glow_r - dy * dy).sqrt() * 2.0).round() as usize;
+            let l = (cx as usize).saturating_sub(half / 2);
+            let r = (l + half).min(total_w);
+            (l, r)
+        } else {
+            (fill_l, fill_r)
+        };
+
+        let mut spans: Vec<Span> = Vec::new();
+        let bg = Style::default().bg(row_bg);
+
+        if glow_l > 0 {
+            spans.push(Span::styled(" ".repeat(glow_l), bg));
+        }
+
+        if fill_l > glow_l {
+            let n = fill_l - glow_l;
+            spans.push(Span::styled(
+                "░".repeat(n),
+                Style::default().fg(glow_color).bg(row_bg),
+            ));
+        }
+
+        let fill_w = fill_r.saturating_sub(fill_l);
+        if fill_w > 0 {
+            let edge_n = (fill_w / 5).clamp(1, 4);
+            if fill_w <= edge_n * 2 {
+                spans.push(Span::styled(
+                    shimmer_edge.repeat(fill_w),
+                    Style::default().fg(edge_color).bg(row_bg),
+                ));
+            } else {
+                let core_n = fill_w - edge_n * 2;
+                spans.push(Span::styled(
+                    shimmer_edge.repeat(edge_n),
+                    Style::default().fg(edge_color).bg(row_bg),
+                ));
+                spans.push(Span::styled(
+                    "█".repeat(core_n),
+                    Style::default().fg(fill_color).bg(row_bg),
+                ));
+                spans.push(Span::styled(
+                    shimmer_edge.repeat(edge_n),
+                    Style::default().fg(edge_color).bg(row_bg),
+                ));
+            }
+        }
+
+        if glow_r_col > fill_r {
+            let n = glow_r_col - fill_r;
+            spans.push(Span::styled(
+                "░".repeat(n),
+                Style::default().fg(glow_color).bg(row_bg),
+            ));
+        }
+
+        let rendered = glow_r_col.min(total_w);
+        if rendered < total_w {
+            spans.push(Span::styled(" ".repeat(total_w - rendered), bg));
+        }
+
+        lines.push(Line::from(spans));
+    }
+
+    let para = Paragraph::new(lines);
+    f.render_widget(para, area);
+}
+
+fn deep_inhale_color(elapsed: f64) -> Color {
+    let t = (elapsed / 60.0).min(1.0);
+    let (r, g, b) = if t < 0.5 {
+        let s = t * 2.0;
+        (255u8, lerp_u8(160, 40, s), lerp_u8(40, 10, s))
+    } else {
+        let s = (t - 0.5) * 2.0;
+        (lerp_u8(255, 200, s), lerp_u8(40, 0, s), lerp_u8(10, 100, s))
+    };
+    Color::Rgb(r, g, b)
+}
+
+fn lerp_u8(a: u8, b: u8, t: f64) -> u8 {
+    (a as f64 + (b as f64 - a as f64) * t).round() as u8
 }
 
 pub fn render_breathing_circle_for(

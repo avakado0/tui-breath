@@ -35,6 +35,13 @@ cargo build --release
 - **4-7-8**: 4s inhale, 7s hold, 8s exhale
 - **Box Breathing**: 4s each — inhale, hold, exhale, hold
 - **Diaphragmatic**: 4s inhale, 6s exhale
+- **Breath of Fire**: Rapid Kapalabhati — passive 0.5s inhale, sharp 0.5s exhale
+- **Bhastrika (Bellows Breath)**: Forceful equal breath — 1s inhale, 1s exhale
+- **Stimulating Breath**: Rapid 3-part energizer — 0.4s inhale, 0.4s exhale
+
+**Workout Mode**
+- Toggle with `w` on the menu to pair breathing with guided body movements
+- Press `m` during a session to open the Body Movements screen (pixel-art guided stretches)
 
 **Customization**
 - Session duration: 1–100 breathing Cycles
@@ -58,13 +65,18 @@ Minimum terminal size: **60×24**.
 | Menu | `j/k` `↑/↓` | Navigate patterns |
 | Menu | `Enter` | Select |
 | Menu | `h` | History |
+| Menu | `w` | Toggle Workout Mode |
 | Setup | `Tab` | Switch field (Duration / Breathing Speed) |
 | Setup | `↑/↓` or `+/-` | Adjust value |
 | Setup | `Enter` | Start Session |
 | Setup | `Esc` | Back to menu |
 | Session | `p` / `Space` | Pause / Resume breathing |
 | Session | `h` | Start / End Breath Hold |
+| Session | `d` | Deep Inhale Hold (from hold mode; not recorded as attempt) |
+| Session | `m` | Open Body Movements (Workout Mode only) |
 | Session | `e` / `Esc` | End Session |
+| Body Movements | `1/2/3` | Jump to movement |
+| Body Movements | `Esc` | Return to Session |
 | Results | `s` | Save again, then return to menu |
 | Results | `Enter` / `Esc` | Return to menu |
 | History | `j/k` `↑/↓` | Navigate saved Sessions |
@@ -85,10 +97,10 @@ src/
 │   ├── patterns.rs      # Pattern and Phase definitions
 │   └── session.rs       # SessionManager metrics, status, and event log
 ├── storage/             # JSON persistence and history index
-└── ui/                  # Session, results, history, menu, and setup rendering
+└── ui/                  # Session, results, history, menu, setup, and body movements rendering
 ```
 
-The engine owns timing. The animator owns interpolation. The app state machine coordinates breathing mode vs Breath Hold mode.
+The engine owns timing. The animator owns interpolation. The app state machine coordinates breathing mode, Breath Hold mode, and Body Movements mode.
 
 ## Testing
 

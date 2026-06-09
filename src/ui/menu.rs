@@ -63,6 +63,23 @@ pub fn draw(f: &mut Frame, app: &App) {
     };
     f.render_widget(list, list_area);
 
+    // Update banner
+    if let Some(ref version) = app.update_available {
+        let banner = Paragraph::new(format!(
+            " Update available: v{}  [U] install & exit  [any key] skip ",
+            version
+        ))
+        .alignment(Alignment::Center)
+        .style(Style::default().fg(Color::Yellow).bold());
+        let banner_area = Rect {
+            x: inner_area.x,
+            y: area.bottom().saturating_sub(4),
+            width: inner_area.width,
+            height: 1,
+        };
+        f.render_widget(banner, banner_area);
+    }
+
     // Workout toggle
     let workout_label = if menu_state.workout_mode {
         "Workout: ON "

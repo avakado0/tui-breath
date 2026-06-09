@@ -8,6 +8,7 @@ use ratatui::prelude::*;
 use std::io;
 use std::time::Instant;
 use tokio::time::Duration;
+use tokio::sync::watch;
 
 mod animator;
 mod app;
@@ -15,6 +16,7 @@ mod audio;
 mod engine;
 mod storage;
 mod ui;
+mod update;
 
 use app::App;
 
@@ -26,12 +28,20 @@ async fn main() -> Result<()> {
 
     restore_terminal()?;
 
-    if let Err(e) = result {
-        eprintln!("Application error: {}", e);
-        std::process::exit(1);
+    match result {
+        Ok(should_update) => {
+            if should_update {
+                std::process::Command::new("cargo")
+                    .args(["install", "tui_breath", "--force"])
+                    .status()?;
+            }
+            Ok(())
+        }
+        Err(e) => {
+            eprintln!("Application error: {}", e);
+            std::process::exit(1);
+        }
     }
-
-    Ok(())
 }
 
 fn setup_terminal() -> Result<()> {
@@ -46,11 +56,18 @@ fn restore_terminal() -> Result<()> {
     Ok(())
 }
 
-async fn run_app() -> Result<()> {
+async fn run_app() -> Result<bool> {
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
     terminal.clear()?;
 
-    let mut app = App::new()?;
+    let (update_tx, update_rx) = watch::channel::<Option<String>>(None);
+    tokio::task::spawn(async move {
+        if let Some(v) = crate::update::check_for_update().await {
+            let _ = update_tx.send(Some(v));
+        }
+    });
+
+    let mut app = App::new(update_rx)?;
     let tick_rate = Duration::from_millis(33);
     let mut interval = tokio::time::interval(tick_rate);
     let mut last_tick = Instant::now();
@@ -81,5 +98,5 @@ async fn run_app() -> Result<()> {
         }
     }
 
-    Ok(())
+    Ok(app.run_update)
 }

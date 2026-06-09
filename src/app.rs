@@ -165,10 +165,13 @@ pub struct App {
     pub beeper: Beeper,
     previous_phase_idx: usize,
     pub session_animator: Option<crate::animator::SessionAnimator>,
+    pub update_available: Option<String>,
+    pub run_update: bool,
+    pub update_rx: tokio::sync::watch::Receiver<Option<String>>,
 }
 
 impl App {
-    pub fn new() -> Result<Self> {
+    pub fn new(update_rx: tokio::sync::watch::Receiver<Option<String>>) -> Result<Self> {
         let storage = Store::new()?;
         Ok(Self {
             state: AppState::Menu(MenuState {
@@ -179,6 +182,9 @@ impl App {
             beeper: Beeper::new(),
             previous_phase_idx: 0,
             session_animator: None,
+            update_available: None,
+            run_update: false,
+            update_rx,
         })
     }
 
@@ -207,6 +213,19 @@ impl App {
     }
 
     fn handle_menu_key(&mut self, key: KeyEvent) {
+        if self.update_available.is_some() {
+            match key.code {
+                KeyCode::Char('u') | KeyCode::Char('U') => {
+                    self.run_update = true;
+                    self.state = AppState::Quitting;
+                }
+                _ => {
+                    self.update_available = None;
+                }
+            }
+            return;
+        }
+
         if let AppState::Menu(menu_state) = &self.state {
             let mut menu_state = menu_state.clone();
             use crate::engine::PATTERNS;
@@ -459,6 +478,12 @@ impl App {
     }
 
     pub fn on_tick(&mut self, delta_secs: f64) {
+        if self.update_available.is_none() {
+            if let Some(v) = self.update_rx.borrow().clone() {
+                self.update_available = Some(v);
+            }
+        }
+
         let mut phase_update = None;
         let mut completed_manager = None;
 
@@ -605,6 +630,7 @@ mod tests {
         let store = Store::new_in(temp_dir).unwrap();
         let manager = SessionManager::new(&PATTERNS[1], 60.0, 1.0);
         let first_phase = manager.engine.current_phase();
+        let (_tx, rx) = tokio::sync::watch::channel(None);
 
         App {
             state: AppState::Session(SessionState::new(manager, false)),
@@ -615,6 +641,9 @@ mod tests {
                 &first_phase.style,
                 first_phase.name,
             )),
+            update_available: None,
+            run_update: false,
+            update_rx: rx,
         }
     }
 

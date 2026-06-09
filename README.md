@@ -141,7 +141,34 @@ Each saved Session keeps breathing metrics plus optional Breath Hold attempt dat
 
 ## Support the Developer
 
-If tui_breath helps your practice, consider supporting on Patreon — it keeps the project going.
+If tui_breath helps your practice, consider supporting — it keeps the project going.
 
 [![Patreon](https://img.shields.io/badge/Patreon-Support-orange?logo=patreon)](https://www.patreon.com/batu) [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/avakado0)
+
+**Crypto Support:**
+
+**Bitcoin (BTC):**
+
+![BTC QR](assets/qr/btc.png)
+
+```
+bc1qgwl0nunj4md5jw0l0xnr9ahssxsds3kn568w0h
+```
+
+**Ethereum & EVM Networks:**
+
+![ETH QR](assets/qr/eth.png)
+
+```
+0x74C78d119cE93268aB0d8dF69099620DB2D56914
+```
+> Works on Ethereum, Base, Polygon, Arbitrum, and any EVM-compatible chain.
+
+**Solana (SOL):**
+
+![SOL QR](assets/qr/sol.png)
+
+```
+DjkcR5ZCDqfMvLMdVwoQxVNxSyBL1aeW6wQ7jtdj2P8E
+```
 

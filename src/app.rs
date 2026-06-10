@@ -173,10 +173,17 @@ pub struct App {
 impl App {
     pub fn new(update_rx: tokio::sync::watch::Receiver<Option<String>>) -> Result<Self> {
         let storage = Store::new()?;
-        Ok(Self {
+        Ok(Self::new_with_store(storage, update_rx))
+    }
+
+    fn new_with_store(
+        storage: Store,
+        update_rx: tokio::sync::watch::Receiver<Option<String>>,
+    ) -> Self {
+        Self {
             state: AppState::Menu(MenuState {
                 selected_pattern_idx: 0,
-                workout_mode: false,
+                workout_mode: true,
             }),
             storage,
             beeper: Beeper::new(),
@@ -185,7 +192,7 @@ impl App {
             update_available: None,
             run_update: false,
             update_rx,
-        })
+        }
     }
 
     pub fn on_key(&mut self, key: KeyEvent) {
@@ -431,19 +438,21 @@ impl App {
 
     fn handle_results_key(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Char('s') => {
+            KeyCode::Char('f') => {
                 if let AppState::Results(ref results) = self.state {
-                    let _ = self.storage.save_session(&results.manager);
+                    let _ = self
+                        .storage
+                        .forget_session(&results.manager.session_id.to_string());
                 }
                 self.state = AppState::Menu(MenuState {
                     selected_pattern_idx: 0,
-                    workout_mode: false,
+                    workout_mode: true,
                 });
             }
             KeyCode::Enter | KeyCode::Esc => {
                 self.state = AppState::Menu(MenuState {
                     selected_pattern_idx: 0,
-                    workout_mode: false,
+                    workout_mode: true,
                 });
             }
             _ => {}
@@ -469,7 +478,7 @@ impl App {
                 KeyCode::Esc => {
                     self.state = AppState::Menu(MenuState {
                         selected_pattern_idx: 0,
-                        workout_mode: false,
+                        workout_mode: true,
                     });
                 }
                 _ => {}
@@ -644,6 +653,53 @@ mod tests {
             update_available: None,
             run_update: false,
             update_rx: rx,
+        }
+    }
+
+    #[test]
+    fn results_forget_removes_saved_session() {
+        let temp_dir = std::env::temp_dir().join(format!("tui_breath_test_{}", Uuid::new_v4()));
+        let store = Store::new_in(temp_dir).unwrap();
+        let mut manager = SessionManager::new(&PATTERNS[0], 60.0, 1.0);
+        manager.complete();
+        let session_id = manager.session_id.to_string();
+        store.save_session(&manager).unwrap();
+        let session_path = store.sessions_dir().join(format!("{session_id}.json"));
+        assert!(session_path.exists());
+
+        let (_tx, rx) = tokio::sync::watch::channel(None);
+        let mut app = App {
+            state: AppState::Results(ResultsState { manager }),
+            storage: store,
+            beeper: Beeper::new(),
+            previous_phase_idx: 0,
+            session_animator: None,
+            update_available: None,
+            run_update: false,
+            update_rx: rx,
+        };
+
+        app.on_key(key(KeyCode::Char('f')));
+
+        assert!(!session_path.exists());
+        assert!(app.storage.load_index().unwrap().is_empty());
+        match app.state {
+            AppState::Menu(menu) => assert!(menu.workout_mode),
+            _ => panic!("expected menu state"),
+        }
+    }
+
+    #[test]
+    fn startup_defaults_to_workout_mode() {
+        let temp_dir = std::env::temp_dir().join(format!("tui_breath_test_{}", Uuid::new_v4()));
+        let store = Store::new_in(temp_dir).unwrap();
+        let (_tx, rx) = tokio::sync::watch::channel(None);
+
+        let app = App::new_with_store(store, rx);
+
+        match app.state {
+            AppState::Menu(menu) => assert!(menu.workout_mode),
+            _ => panic!("expected menu state"),
         }
     }
 

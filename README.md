@@ -77,7 +77,7 @@ Minimum terminal size: **60×24**.
 | Session | `e` / `Esc` | End Session |
 | Body Movements | `1/2/3` | Jump to movement |
 | Body Movements | `Esc` | Return to Session |
-| Results | `s` | Save again, then return to menu |
+| Results | `f` | Forget saved record, then return to menu |
 | Results | `Enter` / `Esc` | Return to menu |
 | History | `j/k` `↑/↓` | Navigate saved Sessions |
 | History | `Esc` | Back to menu |

@@ -50,6 +50,23 @@ impl Store {
         Ok(())
     }
 
+    pub fn forget_session(&self, session_id: &str) -> Result<()> {
+        let path = self.sessions_dir().join(format!("{session_id}.json"));
+        match fs::remove_file(path) {
+            Ok(()) => {}
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Err(err) => return Err(err.into()),
+        }
+
+        let mut entries = self.load_index()?;
+        entries.retain(|entry| entry.session_id != session_id);
+
+        let json = serde_json::to_string_pretty(&entries)?;
+        fs::write(self.index_path(), json)?;
+
+        Ok(())
+    }
+
     pub fn load_index(&self) -> Result<Vec<IndexEntry>> {
         let index_path = self.index_path();
         if !index_path.exists() {

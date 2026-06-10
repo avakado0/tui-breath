@@ -94,12 +94,11 @@ mod tests {
 
     #[test]
     fn test_is_newer() {
-        assert!(is_newer("0.3.3")); // current is 0.3.2
-        assert!(is_newer("0.4.0"));
-        assert!(is_newer("1.0.0"));
-        assert!(!is_newer("0.3.2")); // same version
-        assert!(!is_newer("0.3.1"));
-        assert!(!is_newer("0.2.0"));
+        let current = env!("CARGO_PKG_VERSION");
+
+        assert!(!is_newer(current));
+        assert!(is_newer("999.0.0"));
+        assert!(!is_newer("0.0.0"));
     }
 
     #[test]

@@ -2,6 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, List, ListItem, Paragraph};
 
 use crate::app::{App, AppState};
+use crate::audio::AudioMode;
 use crate::engine::PATTERNS;
 
 pub fn draw(f: &mut Frame, app: &App) {
@@ -63,7 +64,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     };
     f.render_widget(list, list_area);
 
-    // Update banner
+    // Update banner and audio device notice
     if let Some(ref version) = app.update_available {
         let banner = Paragraph::new(format!(
             " Update available: v{}  [U] install & exit  [any key] skip ",
@@ -78,6 +79,21 @@ pub fn draw(f: &mut Frame, app: &App) {
             height: 1,
         };
         f.render_widget(banner, banner_area);
+    }
+
+    #[cfg(feature = "audio")]
+    if !app.audio_device_available {
+        let update_offset = if app.update_available.is_some() { 1 } else { 0 };
+        let notice = Paragraph::new("Tone mode unavailable — no audio device detected")
+            .alignment(Alignment::Center)
+            .style(Style::default().dim());
+        let notice_area = Rect {
+            x: inner_area.x,
+            y: area.bottom().saturating_sub(4 - update_offset),
+            width: inner_area.width,
+            height: 1,
+        };
+        f.render_widget(notice, notice_area);
     }
 
     // Workout toggle
@@ -105,14 +121,15 @@ pub fn draw(f: &mut Frame, app: &App) {
     );
 
     // Footer
-    let beep_status = if app.beeper.is_enabled() {
-        "🔊"
-    } else {
-        "🔇"
+    let audio_label = match app.audio_mode {
+        AudioMode::Off => "audio off",
+        AudioMode::Beep => "audio beep",
+        #[cfg(feature = "audio")]
+        AudioMode::Tone => "audio tone",
     };
     let footer = Paragraph::new(format!(
-        "[k/↑] Up  [j/↓] Down  [Enter] Select  [h] History  [b] {} Beep  [q] Quit",
-        beep_status
+        "[k/↑] Up  [j/↓] Down  [Enter] Select  [h] History  [b] {}  [q] Quit",
+        audio_label
     ))
     .alignment(Alignment::Center)
     .style(Style::default().dim());

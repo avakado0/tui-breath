@@ -2,7 +2,9 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
-use crate::audio::Beeper;
+use crate::audio::{Beeper, AudioMode};
+#[cfg(feature = "audio")]
+use crate::audio::ToneEngine;
 use crate::engine::{BreathHoldRuntime, SessionManager};
 use crate::storage::Store;
 
@@ -163,6 +165,11 @@ pub struct App {
     pub state: AppState,
     pub storage: Store,
     pub beeper: Beeper,
+    pub audio_mode: AudioMode,
+    #[cfg(feature = "audio")]
+    pub tone_engine: Option<ToneEngine>,
+    #[allow(dead_code)]
+    pub audio_device_available: bool,
     previous_phase_idx: usize,
     pub session_animator: Option<crate::animator::SessionAnimator>,
     pub update_available: Option<String>,
@@ -180,6 +187,16 @@ impl App {
         storage: Store,
         update_rx: tokio::sync::watch::Receiver<Option<String>>,
     ) -> Self {
+        #[cfg(feature = "audio")]
+        let (tone_engine, audio_device_available) = {
+            let te = ToneEngine::try_new();
+            let available = te.is_some();
+            (te, available)
+        };
+
+        #[cfg(not(feature = "audio"))]
+        let audio_device_available = false;
+
         Self {
             state: AppState::Menu(MenuState {
                 selected_pattern_idx: 0,
@@ -187,6 +204,10 @@ impl App {
             }),
             storage,
             beeper: Beeper::new(),
+            audio_mode: AudioMode::Off,
+            #[cfg(feature = "audio")]
+            tone_engine,
+            audio_device_available,
             previous_phase_idx: 0,
             session_animator: None,
             update_available: None,
@@ -204,7 +225,7 @@ impl App {
         }
 
         if key.code == KeyCode::Char('b') {
-            self.beeper.toggle();
+            self.cycle_audio_mode();
             return;
         }
 
@@ -537,6 +558,15 @@ impl App {
             self.previous_phase_idx = phase_idx;
         }
 
+        #[cfg(feature = "audio")]
+        if self.audio_mode == AudioMode::Tone {
+            if let Some(tone) = &self.tone_engine {
+                let (target_hz, amplitude) = self.compute_tone_state();
+                tone.set_frequency(target_hz);
+                tone.set_amplitude(amplitude);
+            }
+        }
+
         if let Some(manager) = completed_manager {
             let _ = self.storage.save_session(&manager);
             self.session_animator = None;
@@ -614,6 +644,61 @@ impl App {
             self.session_animator = Some(anim);
         }
     }
+
+    fn cycle_audio_mode(&mut self) {
+        #[cfg(feature = "audio")]
+        {
+            self.audio_mode = match self.audio_mode {
+                AudioMode::Off => AudioMode::Beep,
+                AudioMode::Beep => {
+                    if self.audio_device_available {
+                        AudioMode::Tone
+                    } else {
+                        AudioMode::Off
+                    }
+                }
+                AudioMode::Tone => AudioMode::Off,
+            };
+
+            if self.audio_mode != AudioMode::Tone {
+                if let Some(t) = &self.tone_engine {
+                    t.set_amplitude(0.0);
+                }
+            }
+        }
+
+        #[cfg(not(feature = "audio"))]
+        {
+            self.audio_mode = match self.audio_mode {
+                AudioMode::Off => AudioMode::Beep,
+                AudioMode::Beep => AudioMode::Off,
+            };
+        }
+    }
+
+    #[cfg(feature = "audio")]
+    fn compute_tone_state(&self) -> (f64, f64) {
+        if self.session_is_paused() {
+            return (110.0, 0.0);
+        }
+
+        if let AppState::Session(session) = &self.state {
+            match session.mode {
+                SessionMode::Breathing => {
+                    let engine = &session.manager.engine;
+                    let ratio = crate::engine::patterns::fill_ratio(
+                        engine.pattern.phases,
+                        engine.current_phase_idx,
+                        engine.phase_progress(),
+                    );
+                    (110.0 + ratio * 110.0, 0.3)
+                }
+                SessionMode::Holding(_) | SessionMode::DeepInhaleHold(_) => (110.0, 0.3),
+            }
+        } else {
+            (110.0, 0.0)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -645,6 +730,10 @@ mod tests {
             state: AppState::Session(SessionState::new(manager, false)),
             storage: store,
             beeper: Beeper::new(),
+            audio_mode: AudioMode::Off,
+            #[cfg(feature = "audio")]
+            tone_engine: None,
+            audio_device_available: false,
             previous_phase_idx: 0,
             session_animator: Some(SessionAnimator::for_phase(
                 &first_phase.style,
@@ -672,6 +761,10 @@ mod tests {
             state: AppState::Results(ResultsState { manager }),
             storage: store,
             beeper: Beeper::new(),
+            audio_mode: AudioMode::Off,
+            #[cfg(feature = "audio")]
+            tone_engine: None,
+            audio_device_available: false,
             previous_phase_idx: 0,
             session_animator: None,
             update_available: None,

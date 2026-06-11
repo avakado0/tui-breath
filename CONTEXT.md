@@ -20,6 +20,10 @@ Domain glossary and shared concepts for the TUI Breathing Guide and its web port
 
 **Tick** — one step of the engine clock. The engine accepts a `delta_secs` (Rust) / `deltaSecs` (web) parameter; it does not read wall-clock time itself. Pure function over (state, delta).
 
+**AudioMode** — one of three states for audio feedback: `Off` (silent), `Beep` (terminal bell), or `Tone` (ambient sine wave). User cycles through modes with `b` key.
+
+**Tone Mode** — ambient audio using a continuous sine glide from 110 Hz to 220 Hz, driven by breath phase progress. Tracks `fill_ratio()` live; sustains at 110 Hz during breath holds and pauses. Requires an audio output device.
+
 ## Cross-project rules
 
 - **Engine purity** — `BreathingEngine` (both projects) has no I/O, no clock, no DOM. Time always arrives as a parameter.

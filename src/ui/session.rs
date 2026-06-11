@@ -2,6 +2,7 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Gauge, Paragraph};
 
 use crate::app::{App, AppState, SessionMode};
+use crate::audio::AudioMode;
 use crate::engine::patterns::{Channel, PhaseStyle};
 
 pub fn draw(f: &mut Frame, app: &App) {
@@ -42,10 +43,11 @@ pub fn draw(f: &mut Frame, app: &App) {
         }
     }
 
-    let beep_status = if app.beeper.is_enabled() {
-        "🔊"
-    } else {
-        "🔇"
+    let audio_label = match app.audio_mode {
+        AudioMode::Off => "audio off",
+        AudioMode::Beep => "audio beep",
+        #[cfg(feature = "audio")]
+        AudioMode::Tone => "audio tone",
     };
     let workout_hint = if session_state.workout_mode {
         "  [m] Movements"
@@ -55,26 +57,26 @@ pub fn draw(f: &mut Frame, app: &App) {
     let footer = match &session_state.mode {
         SessionMode::Breathing if engine.is_paused => {
             format!(
-                "[p] Resume  [h] Hold  [e] End  [b] {} Beep{}  [q] Quit",
-                beep_status, workout_hint
+                "[p] Resume  [h] Hold  [e] End  [b] {}{}  [q] Quit",
+                audio_label, workout_hint
             )
         }
         SessionMode::Breathing => {
             format!(
-                "[p] Pause  [h] Hold  [e] End  [b] {} Beep{}  [q] Quit",
-                beep_status, workout_hint
+                "[p] Pause  [h] Hold  [e] End  [b] {}{}  [q] Quit",
+                audio_label, workout_hint
             )
         }
         SessionMode::Holding(_) => {
             format!(
-                "[h] End Hold  [d] Deep Inhale  [e] End Session  [b] {} Beep{}  [q] Quit",
-                beep_status, workout_hint
+                "[h] End Hold  [d] Deep Inhale  [e] End Session  [b] {}{}  [q] Quit",
+                audio_label, workout_hint
             )
         }
         SessionMode::DeepInhaleHold(_) => {
             format!(
-                "[d] Release  [e] End Session  [b] {} Beep  [q] Quit",
-                beep_status
+                "[d] Release  [e] End Session  [b] {}  [q] Quit",
+                audio_label
             )
         }
     };

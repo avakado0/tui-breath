@@ -25,6 +25,11 @@ chrono = { version = "0.4", features = ["serde"] }
 dirs = "5.0"
 anyhow = "1.0"
 ureq = { version = "2", features = ["json"] }
+cpal = { version = "0.18", optional = true }
+
+[features]
+default = []
+audio = ["cpal"]
 
 [profile.release]
 opt-level = 3

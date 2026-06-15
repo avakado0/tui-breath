@@ -159,6 +159,8 @@ pub struct ResultsState {
 pub struct HistoryState {
     pub sessions: Vec<crate::storage::schema::IndexEntry>,
     pub selected_idx: usize,
+    pub scroll_offset: usize,
+    pub viewport_height: usize,
 }
 
 pub struct App {
@@ -288,6 +290,8 @@ impl App {
                     self.state = AppState::History(HistoryState {
                         sessions,
                         selected_idx: 0,
+                        scroll_offset: 0,
+                        viewport_height: 16,
                     });
                     return;
                 }
@@ -488,11 +492,18 @@ impl App {
                     if history.selected_idx < history.sessions.len().saturating_sub(1) {
                         history.selected_idx += 1;
                     }
+                    let visible_end = history.scroll_offset + history.viewport_height;
+                    if history.selected_idx >= visible_end {
+                        history.scroll_offset = history.selected_idx.saturating_sub(history.viewport_height - 1);
+                    }
                     self.state = AppState::History(history);
                 }
                 KeyCode::Char('k') | KeyCode::Up => {
                     if history.selected_idx > 0 {
                         history.selected_idx -= 1;
+                    }
+                    if history.selected_idx < history.scroll_offset {
+                        history.scroll_offset = history.selected_idx;
                     }
                     self.state = AppState::History(history);
                 }

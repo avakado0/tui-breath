@@ -37,12 +37,16 @@ pub fn draw(f: &mut Frame, app: &App) {
             Cell::from("Completion").style(Style::default().bold()),
         ]);
 
-        let rows: Vec<Row> = history_state
-            .sessions
+        let viewport_height = inner.height as usize;
+        let start_idx = history_state.scroll_offset;
+        let end_idx = (start_idx + viewport_height).min(history_state.sessions.len());
+
+        let rows: Vec<Row> = history_state.sessions[start_idx..end_idx]
             .iter()
             .enumerate()
-            .map(|(idx, entry)| {
-                let style = if idx == history_state.selected_idx {
+            .map(|(display_idx, entry)| {
+                let actual_idx = start_idx + display_idx;
+                let style = if actual_idx == history_state.selected_idx {
                     Style::default().bg(Color::DarkGray)
                 } else {
                     Style::default()

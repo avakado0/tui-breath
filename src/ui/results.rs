@@ -111,7 +111,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     };
     f.render_widget(gauge, gauge_area);
 
-    let footer = Paragraph::new("[f] Forget Record  [Enter] Main Menu  [Esc] Main Menu")
+    let footer = Paragraph::new("[f] Forget Record  [Esc] Main Menu")
         .alignment(Alignment::Center)
         .style(Style::default().dim());
 

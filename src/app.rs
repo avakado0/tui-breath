@@ -248,12 +248,12 @@ impl App {
                 KeyCode::Char('u') | KeyCode::Char('U') => {
                     self.run_update = true;
                     self.state = AppState::Quitting;
+                    return;
                 }
                 _ => {
                     self.update_available = None;
                 }
             }
-            return;
         }
 
         if let AppState::Menu(menu_state) = &self.state {

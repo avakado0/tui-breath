@@ -1,6 +1,6 @@
 use ratatui::prelude::*;
 use ratatui::symbols;
-use ratatui::widgets::{Axis, Block, Borders, Cell, Chart, Dataset, Paragraph, Row, Table};
+use ratatui::widgets::{Axis, Block, Borders, Cell, Chart, Dataset, GraphType, Paragraph, Row, Table};
 
 use crate::app::{App, AppState, HistoryView, TimeFrame};
 use crate::ui::trend;
@@ -102,10 +102,10 @@ fn draw_table(f: &mut Frame, history_state: &crate::app::HistoryState, inner: Re
 }
 
 fn draw_trend(f: &mut Frame, history_state: &crate::app::HistoryState, inner: Rect) {
-    let hold_series = trend::hold_series(&history_state.sessions, history_state.time_frame);
-    let spd_series = trend::sessions_per_day(&history_state.sessions, history_state.time_frame);
+    let hold_data = trend::hold_series(&history_state.sessions, history_state.time_frame);
+    let spd_data = trend::sessions_per_day(&history_state.sessions, history_state.time_frame);
 
-    if hold_series.len() < 2 && spd_series.len() < 2 {
+    if hold_data.points.len() < 2 && spd_data.points.len() < 2 {
         let empty_msg = Paragraph::new("Not enough sessions yet — keep practicing.")
             .alignment(Alignment::Center)
             .style(Style::default().dim());
@@ -114,8 +114,9 @@ fn draw_trend(f: &mut Frame, history_state: &crate::app::HistoryState, inner: Re
         let chunks = Layout::vertical([Constraint::Percentage(50), Constraint::Percentage(50)])
             .split(inner);
 
-        if !hold_series.is_empty() {
-            let (min_hold, max_hold) = hold_series
+        if !hold_data.points.is_empty() {
+            let (min_hold, max_hold) = hold_data
+                .points
                 .iter()
                 .fold((f64::INFINITY, 0.0_f64), |(min, max), (_, val)| {
                     (min.min(*val), max.max(*val))
@@ -124,16 +125,23 @@ fn draw_trend(f: &mut Frame, history_state: &crate::app::HistoryState, inner: Re
 
             let dataset = Dataset::default()
                 .name("Breath Hold (s)")
-                .data(&hold_series)
+                .data(&hold_data.points)
                 .marker(symbols::Marker::Braille)
+                .graph_type(GraphType::Line)
                 .style(Style::default().fg(Color::Yellow));
 
+            let x_bounds = (hold_data.points.len() - 1).max(1) as f64;
+            let x_labels: Vec<_> = hold_data
+                .x_labels
+                .iter()
+                .map(|(_, label)| label.clone().into())
+                .collect();
             let chart = Chart::new(vec![dataset])
                 .block(Block::default().title("Breath Hold").borders(Borders::ALL))
                 .x_axis(
                     Axis::default()
-                        .bounds([0.0, (hold_series.len() - 1).max(1) as f64])
-                        .labels(vec![]),
+                        .bounds([0.0, x_bounds])
+                        .labels(x_labels),
                 )
                 .y_axis(
                     Axis::default()
@@ -147,8 +155,9 @@ fn draw_trend(f: &mut Frame, history_state: &crate::app::HistoryState, inner: Re
             f.render_widget(chart, chunks[0]);
         }
 
-        if !spd_series.is_empty() {
-            let max_spd = spd_series
+        if !spd_data.points.is_empty() {
+            let max_spd = spd_data
+                .points
                 .iter()
                 .map(|(_, val)| *val)
                 .fold(0.0, f64::max);
@@ -156,16 +165,23 @@ fn draw_trend(f: &mut Frame, history_state: &crate::app::HistoryState, inner: Re
 
             let dataset = Dataset::default()
                 .name("Sessions/Day")
-                .data(&spd_series)
+                .data(&spd_data.points)
                 .marker(symbols::Marker::Braille)
+                .graph_type(GraphType::Line)
                 .style(Style::default().fg(Color::Cyan));
 
+            let x_bounds = (spd_data.points.len() - 1).max(1) as f64;
+            let x_labels: Vec<_> = spd_data
+                .x_labels
+                .iter()
+                .map(|(_, label)| label.clone().into())
+                .collect();
             let chart = Chart::new(vec![dataset])
                 .block(Block::default().title("Sessions Per Day").borders(Borders::ALL))
                 .x_axis(
                     Axis::default()
-                        .bounds([0.0, (spd_series.len() - 1).max(1) as f64])
-                        .labels(vec![]),
+                        .bounds([0.0, x_bounds])
+                        .labels(x_labels),
                 )
                 .y_axis(
                     Axis::default()

@@ -3,56 +3,132 @@ use chrono::{Duration, Utc};
 use crate::app::TimeFrame;
 use crate::storage::schema::IndexEntry;
 
-pub fn hold_series(sessions: &[IndexEntry], frame: TimeFrame) -> Vec<(f64, f64)> {
-    match frame {
-        TimeFrame::SevenDays | TimeFrame::ThirtyDays => {
-            let days = match frame {
-                TimeFrame::SevenDays => 7,
-                TimeFrame::ThirtyDays => 30,
-                TimeFrame::All => unreachable!(),
-            };
-            let cutoff = Utc::now() - Duration::days(days);
-            sessions
-                .iter()
-                .filter(|s| s.start_time >= cutoff && s.best_breath_hold_seconds.is_some())
-                .enumerate()
-                .map(|(idx, s)| (idx as f64, s.best_breath_hold_seconds.unwrap()))
-                .collect()
-        }
-        TimeFrame::All => sessions
-            .iter()
-            .filter(|s| s.best_breath_hold_seconds.is_some())
-            .enumerate()
-            .map(|(idx, s)| (idx as f64, s.best_breath_hold_seconds.unwrap()))
-            .collect(),
-    }
+pub struct ChartData {
+    pub points: Vec<(f64, f64)>,
+    pub x_labels: Vec<(f64, String)>,
 }
 
-pub fn sessions_per_day(sessions: &[IndexEntry], frame: TimeFrame) -> Vec<(f64, f64)> {
+pub fn hold_series(sessions: &[IndexEntry], frame: TimeFrame) -> ChartData {
     use std::collections::BTreeMap;
 
-    let (cutoff, _all_time) = match frame {
-        TimeFrame::SevenDays => (Utc::now() - Duration::days(7), false),
-        TimeFrame::ThirtyDays => (Utc::now() - Duration::days(30), false),
-        TimeFrame::All => (Utc::now() - Duration::days(36500), true),
+    let days = match frame {
+        TimeFrame::SevenDays => 7,
+        TimeFrame::ThirtyDays => 30,
+        TimeFrame::All => return all_time_hold_series(sessions),
     };
 
-    let filtered: Vec<_> = sessions
+    let cutoff = Utc::now() - Duration::days(days);
+    let mut day_buckets: BTreeMap<String, f64> = BTreeMap::new();
+
+    for session in sessions {
+        if session.start_time >= cutoff && session.best_breath_hold_seconds.is_some() {
+            let day_key = session.start_time.format("%Y-%m-%d").to_string();
+            day_buckets
+                .entry(day_key)
+                .or_insert_with(|| session.best_breath_hold_seconds.unwrap());
+        }
+    }
+
+    let points: Vec<(f64, f64)> = day_buckets
         .iter()
-        .filter(|s| s.start_time >= cutoff)
+        .enumerate()
+        .map(|(idx, (_day, val))| (idx as f64, *val))
         .collect();
 
+    let x_labels = generate_x_labels(day_buckets.keys().cloned().collect(), &points);
+    ChartData { points, x_labels }
+}
+
+fn all_time_hold_series(sessions: &[IndexEntry]) -> ChartData {
+    let points: Vec<(f64, f64)> = sessions
+        .iter()
+        .filter(|s| s.best_breath_hold_seconds.is_some())
+        .enumerate()
+        .map(|(idx, s)| (idx as f64, s.best_breath_hold_seconds.unwrap()))
+        .collect();
+
+    let x_labels = if points.len() > 10 {
+        let step = (points.len() / 4).max(1);
+        (0..points.len())
+            .step_by(step)
+            .map(|i| (i as f64, format!("#{}", i + 1)))
+            .collect()
+    } else {
+        (0..points.len())
+            .map(|i| (i as f64, format!("#{}", i + 1)))
+            .collect()
+    };
+
+    ChartData { points, x_labels }
+}
+
+pub fn sessions_per_day(sessions: &[IndexEntry], frame: TimeFrame) -> ChartData {
+    use std::collections::BTreeMap;
+
+    let days = match frame {
+        TimeFrame::SevenDays => 7,
+        TimeFrame::ThirtyDays => 30,
+        TimeFrame::All => return all_time_sessions_per_day(sessions),
+    };
+
+    let cutoff = Utc::now() - Duration::days(days);
     let mut day_buckets: BTreeMap<String, f64> = BTreeMap::new();
-    for session in filtered {
+
+    for session in sessions {
+        if session.start_time >= cutoff {
+            let day_key = session.start_time.format("%Y-%m-%d").to_string();
+            *day_buckets.entry(day_key).or_insert(0.0) += 1.0;
+        }
+    }
+
+    let points: Vec<(f64, f64)> = day_buckets
+        .iter()
+        .enumerate()
+        .map(|(idx, (_day, count))| (idx as f64, *count))
+        .collect();
+
+    let days_vec: Vec<String> = day_buckets.keys().cloned().collect();
+    let x_labels = generate_x_labels(days_vec, &points);
+    ChartData { points, x_labels }
+}
+
+fn all_time_sessions_per_day(sessions: &[IndexEntry]) -> ChartData {
+    use std::collections::BTreeMap;
+
+    let mut day_buckets: BTreeMap<String, f64> = BTreeMap::new();
+    for session in sessions {
         let day_key = session.start_time.format("%Y-%m-%d").to_string();
         *day_buckets.entry(day_key).or_insert(0.0) += 1.0;
     }
 
-    day_buckets
-        .into_iter()
+    let points: Vec<(f64, f64)> = day_buckets
+        .iter()
         .enumerate()
-        .map(|(idx, (_day, count))| (idx as f64, count))
-        .collect()
+        .map(|(idx, (_day, count))| (idx as f64, *count))
+        .collect();
+
+    let days_vec: Vec<String> = day_buckets.keys().cloned().collect();
+    let x_labels = generate_x_labels(days_vec, &points);
+    ChartData { points, x_labels }
+}
+
+fn generate_x_labels(days: Vec<String>, _points: &[(f64, f64)]) -> Vec<(f64, String)> {
+    if days.is_empty() {
+        return vec![];
+    }
+
+    if days.len() <= 5 {
+        days.iter()
+            .enumerate()
+            .map(|(idx, day)| (idx as f64, day.clone()))
+            .collect()
+    } else {
+        let step = (days.len() / 4).max(1);
+        (0..days.len())
+            .step_by(step)
+            .map(|i| (i as f64, days[i].clone()))
+            .collect()
+    }
 }
 
 #[cfg(test)]
@@ -76,15 +152,15 @@ mod tests {
 
     #[test]
     fn hold_series_empty() {
-        let series = hold_series(&[], TimeFrame::All);
-        assert!(series.is_empty());
+        let data = hold_series(&[], TimeFrame::All);
+        assert!(data.points.is_empty());
     }
 
     #[test]
     fn hold_series_filters_none() {
         let sessions = vec![test_entry("1", None), test_entry("2", None)];
-        let series = hold_series(&sessions, TimeFrame::All);
-        assert!(series.is_empty());
+        let data = hold_series(&sessions, TimeFrame::All);
+        assert!(data.points.is_empty());
     }
 
     #[test]
@@ -94,17 +170,17 @@ mod tests {
             test_entry("2", Some(15.3)),
             test_entry("3", Some(20.0)),
         ];
-        let series = hold_series(&sessions, TimeFrame::All);
-        assert_eq!(series.len(), 3);
-        assert_eq!(series[0], (0.0, 10.5));
-        assert_eq!(series[1], (1.0, 15.3));
-        assert_eq!(series[2], (2.0, 20.0));
+        let data = hold_series(&sessions, TimeFrame::All);
+        assert_eq!(data.points.len(), 3);
+        assert_eq!(data.points[0], (0.0, 10.5));
+        assert_eq!(data.points[1], (1.0, 15.3));
+        assert_eq!(data.points[2], (2.0, 20.0));
     }
 
     #[test]
     fn sessions_per_day_empty() {
-        let series = sessions_per_day(&[], TimeFrame::All);
-        assert!(series.is_empty());
+        let data = sessions_per_day(&[], TimeFrame::All);
+        assert!(data.points.is_empty());
     }
 
     #[test]
@@ -114,9 +190,9 @@ mod tests {
             test_entry("2", Some(15.0)),
             test_entry("3", Some(20.0)),
         ];
-        let series = sessions_per_day(&sessions, TimeFrame::All);
-        assert_eq!(series.len(), 1);
-        assert_eq!(series[0].1, 3.0);
+        let data = sessions_per_day(&sessions, TimeFrame::All);
+        assert_eq!(data.points.len(), 1);
+        assert_eq!(data.points[0].1, 3.0);
     }
 
     #[test]
@@ -144,11 +220,11 @@ mod tests {
             },
         ];
 
-        let series = sessions_per_day(&entries, TimeFrame::All);
-        assert_eq!(series.len(), 3);
-        assert_eq!(series[0].1, 1.0);
-        assert_eq!(series[1].1, 1.0);
-        assert_eq!(series[2].1, 2.0);
+        let data = sessions_per_day(&entries, TimeFrame::All);
+        assert_eq!(data.points.len(), 3);
+        assert_eq!(data.points[0].1, 1.0);
+        assert_eq!(data.points[1].1, 1.0);
+        assert_eq!(data.points[2].1, 2.0);
     }
 
     #[test]
@@ -172,7 +248,7 @@ mod tests {
             },
         ];
 
-        let series = sessions_per_day(&sessions, TimeFrame::SevenDays);
-        assert_eq!(series.len(), 2);
+        let data = sessions_per_day(&sessions, TimeFrame::SevenDays);
+        assert_eq!(data.points.len(), 2);
     }
 }

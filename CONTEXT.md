@@ -24,6 +24,10 @@ Domain glossary and shared concepts for the TUI Breathing Guide and its web port
 
 **Tone Mode** — ambient audio using a continuous sine glide from 110 Hz to 220 Hz, driven by breath phase progress. Tracks `fill_ratio()` live; sustains at 110 Hz during breath holds and pauses. Requires an audio output device.
 
+**Trend view** — a graph mode of the History screen, toggled with `g`, showing two stacked line charts over the session list: breath-hold-seconds-per-session (best hold per session) and sessions-per-day (practice frequency). Not a separate `AppState`; a view-mode flag on History, since both views read the same `IndexEntry` list.
+
+**Time frame** — the visible window for the Trend view: `7d`, `30d`, or `all`, cycled with `t`. 7d/30d bucket one point per calendar day; `all` buckets one point per session.
+
 ## Cross-project rules
 
 - **Engine purity** — `BreathingEngine` (both projects) has no I/O, no clock, no DOM. Time always arrives as a parameter.

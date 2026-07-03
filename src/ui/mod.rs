@@ -8,6 +8,7 @@ pub mod menu;
 pub mod results;
 pub mod session;
 pub mod setup;
+pub mod trend;
 
 pub fn draw(f: &mut Frame, app: &App) {
     match &app.state {

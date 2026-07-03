@@ -155,12 +155,37 @@ pub struct ResultsState {
     pub manager: SessionManager,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HistoryView {
+    Table,
+    Trend,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TimeFrame {
+    SevenDays,
+    ThirtyDays,
+    All,
+}
+
+impl TimeFrame {
+    fn next(self) -> Self {
+        match self {
+            TimeFrame::SevenDays => TimeFrame::ThirtyDays,
+            TimeFrame::ThirtyDays => TimeFrame::All,
+            TimeFrame::All => TimeFrame::SevenDays,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct HistoryState {
     pub sessions: Vec<crate::storage::schema::IndexEntry>,
     pub selected_idx: usize,
     pub scroll_offset: usize,
     pub viewport_height: usize,
+    pub view: HistoryView,
+    pub time_frame: TimeFrame,
 }
 
 pub struct App {
@@ -292,6 +317,8 @@ impl App {
                         selected_idx: 0,
                         scroll_offset: 0,
                         viewport_height: 16,
+                        view: HistoryView::Table,
+                        time_frame: TimeFrame::SevenDays,
                     });
                     return;
                 }
@@ -488,6 +515,17 @@ impl App {
         if let AppState::History(history_state) = &self.state {
             let mut history = history_state.clone();
             match key.code {
+                KeyCode::Char('g') => {
+                    history.view = match history.view {
+                        HistoryView::Table => HistoryView::Trend,
+                        HistoryView::Trend => HistoryView::Table,
+                    };
+                    self.state = AppState::History(history);
+                }
+                KeyCode::Char('t') => {
+                    history.time_frame = history.time_frame.next();
+                    self.state = AppState::History(history);
+                }
                 KeyCode::Char('j') | KeyCode::Down => {
                     if history.selected_idx < history.sessions.len().saturating_sub(1) {
                         history.selected_idx += 1;

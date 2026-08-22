@@ -343,7 +343,7 @@ impl App {
                 KeyCode::Char('+') | KeyCode::Up => {
                     match setup_state.selected_field {
                         SetupField::Duration => {
-                            setup_state.duration_units = (setup_state.duration_units + 1).min(100)
+                            setup_state.duration_units = setup_state.duration_units + 1
                         }
                         SetupField::Tempo => setup_state.tempo = (setup_state.tempo + 0.1).min(2.0),
                     }
